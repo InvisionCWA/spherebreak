@@ -53,23 +53,32 @@
   50%       { opacity: 0.3; }
 }
 
-.player-score {
-  font-size: 1.8rem;
+.player-coins {
+  font-size: 1.6rem;
   font-weight: bold;
   color: #fff;
+  margin-bottom: 6px;
 }
-.player-score span { font-size: 0.8rem; color: #888; }
+.coins-label { font-size: 0.8rem; color: #888; }
 
-.player-chain {
+.quota-bar-bg {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.quota-bar-fill {
+  height: 100%;
+  background: #44ff88;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.player-echo {
   font-size: 0.85rem;
-  color: #aaa;
-  margin-top: 4px;
+  color: gold;
+  font-weight: bold;
 }
 
-.chain-value { font-weight: bold; }
-.chain-0 { color: #888; }
-.chain-1 { color: #aaaaff; }
-.chain-2 { color: #aaffaa; }
-.chain-3 { color: #ffcc44; }
-.chain-4 { color: #ff8844; }
-.chain-5 { color: #ff4444; }

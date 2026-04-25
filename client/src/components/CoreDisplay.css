@@ -15,30 +15,17 @@
   margin-bottom: 8px;
 }
 
-.core-digits {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.core-digit {
-  font-size: 3rem;
+.core-number {
+  font-size: 4rem;
   font-weight: bold;
   color: #ccccff;
-  width: 60px;
-  height: 72px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-bottom: 3px solid rgba(100, 100, 255, 0.3);
+  margin-bottom: 10px;
   transition: all 0.3s;
 }
 
-.core-digit.matched {
+.core-number.matched {
   color: gold;
-  border-bottom-color: gold;
-  text-shadow: 0 0 12px gold;
+  text-shadow: 0 0 16px gold;
 }
 
 .quota-label {
@@ -49,3 +36,12 @@
   border-radius: 12px;
   display: inline-block;
 }
+
+.core-multiplier {
+  margin-top: 8px;
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: gold;
+  text-shadow: 0 0 8px gold;
+}
+

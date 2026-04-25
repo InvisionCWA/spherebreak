@@ -1,25 +1,19 @@
 import React from 'react';
 import './RunningSum.css';
 
-function countMatchedDigits(sum, core) {
-  const sumDigits = String(sum).split('').reverse();
-  const coreDigits = String(core).split('').reverse();
-  let matches = 0;
-  for (let i = 0; i < coreDigits.length; i++) {
-    if (sumDigits[i] !== undefined && sumDigits[i] === coreDigits[i]) matches++;
-  }
-  return matches;
-}
-
 export default function RunningSum({ sum, core }) {
-  const matches = sum > 0 ? countMatchedDigits(sum, core) : 0;
+  const isMultiple = sum > 0 && sum % core === 0;
+  const multiplier = isMultiple ? sum / core : null;
+
   return (
     <div className="running-sum">
       <span className="sum-label">Sum:</span>
-      <span className="sum-value">{sum}</span>
+      <span className={`sum-value${isMultiple ? ' is-multiple' : ''}`}>{sum}</span>
       {sum > 0 && (
         <span className="sum-matches">
-          ({matches} match{matches !== 1 ? 'es' : ''})
+          {isMultiple
+            ? `✓ ${sum} = ${multiplier} × ${core}`
+            : `Not a multiple of ${core}`}
         </span>
       )}
     </div>

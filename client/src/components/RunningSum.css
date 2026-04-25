@@ -19,7 +19,13 @@
   text-align: center;
 }
 
+.sum-value.is-multiple {
+  color: gold;
+  text-shadow: 0 0 8px gold;
+}
+
 .sum-matches {
   font-size: 0.85rem;
   color: #aacc88;
 }
+

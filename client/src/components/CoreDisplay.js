@@ -1,40 +1,21 @@
 import React from 'react';
 import './CoreDisplay.css';
 
-function getMatchState(sum, core) {
-  const sumDigits = String(sum).split('').reverse();
-  const coreDigits = String(core).split('').reverse();
-  // matched[i] corresponds to coreDigits[i] (least-significant first)
-  const matched = coreDigits.map((d, i) =>
-    sumDigits[i] !== undefined && sumDigits[i] === d
-  );
-  return matched.reverse(); // back to display (most-significant first)
-}
-
-export default function CoreDisplay({ core, quota, sum, moveResult }) {
-  const coreStr = String(core);
-
-  // After a move show result-based matching; while selecting show live preview
+export default function CoreDisplay({ core, sum, moveResult }) {
   const displaySum = moveResult != null ? moveResult.sum : sum;
-  const matched =
-    displaySum > 0 ? getMatchState(displaySum, core) : null;
+  const isMultiple = displaySum > 0 && displaySum % core === 0;
+  const multiplier = isMultiple ? displaySum / core : null;
 
   return (
     <div className="core-display">
-      <div className="core-label">Core Number</div>
-      <div className="core-digits">
-        {coreStr.split('').map((d, i) => (
-          <span
-            key={i}
-            className={`core-digit${matched && matched[i] ? ' matched' : ''}`}
-          >
-            {d}
-          </span>
-        ))}
-      </div>
+      <div className="core-label">Core Sphere</div>
+      <div className={`core-number${isMultiple ? ' matched' : ''}`}>{core}</div>
       <div className="quota-label">
-        Match {quota} digit{quota !== 1 ? 's' : ''}
+        Find a multiple of {core}
       </div>
+      {isMultiple && multiplier !== null && (
+        <div className="core-multiplier">× {multiplier}</div>
+      )}
     </div>
   );
 }

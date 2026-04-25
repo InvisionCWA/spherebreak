@@ -19,7 +19,7 @@ export default function App() {
   const [selectedCoinIds, setSelectedCoinIds] = useState([]);
   const [playerName, setPlayerName] = useState('');
   const [joined, setJoined] = useState(false);
-  const [turnTimer, setTurnTimer] = useState(120);
+  const [turnTimer, setTurnTimer] = useState(60);
   const [moveResult, setMoveResult] = useState(null);
   const [moveError, setMoveError] = useState(null);
   const [disconnected, setDisconnected] = useState(false);
@@ -87,21 +87,15 @@ export default function App() {
     gameState.status === 'playing' &&
     gameState.players[gameState.currentPlayerIndex].id === playerId;
 
-  // Compute running sum from selected coins (mirrors server echo logic)
+  // Compute running sum from selected coins (plain addition)
   const runningSum = useMemo(() => {
     if (!gameState) return 0;
-    const boardMap = new Map(gameState.board.map((c) => [c.id, c]));
+    const allCoins = [...(gameState.centerCoins || []), ...(gameState.borderCoins || [])];
+    const coinMap = new Map(allCoins.map((c) => [c.id, c]));
     let sum = 0;
-    let lastValue = 0;
     for (const id of selectedCoinIds) {
-      const coin = boardMap.get(id);
-      if (!coin) continue;
-      if (coin.type === 'echo') {
-        sum += lastValue;
-      } else {
-        sum += coin.value;
-        lastValue = coin.value;
-      }
+      const coin = coinMap.get(id);
+      if (coin) sum += coin.value;
     }
     return sum;
   }, [gameState, selectedCoinIds]);
@@ -161,14 +155,22 @@ export default function App() {
   if (gameState.status === 'finished') {
     const [p1, p2] = gameState.players;
     const winner =
-      p1.score > p2.score ? p1 : p2.score > p1.score ? p2 : null;
+      p1.coinsUsed >= gameState.quota
+        ? p1
+        : p2.coinsUsed >= gameState.quota
+        ? p2
+        : p1.coinsUsed > p2.coinsUsed
+        ? p1
+        : p2.coinsUsed > p1.coinsUsed
+        ? p2
+        : null;
     return (
       <div className="App lobby">
         <div className="lobby-box">
           <h1>Game Over!</h1>
           {winner ? (
             <p className="winner">
-              {winner.name} wins with {winner.score} points!
+              {winner.name} wins with {winner.coinsUsed} coins used!
             </p>
           ) : (
             <p className="winner">It&apos;s a tie!</p>
@@ -177,7 +179,9 @@ export default function App() {
             {gameState.players.map((p, i) => (
               <div key={i} className="final-score-row">
                 <span>{p.name}</span>
-                <span>{p.score} pts</span>
+                <span>
+                  {p.coinsUsed} / {gameState.quota} coins
+                </span>
               </div>
             ))}
           </div>
@@ -197,11 +201,13 @@ export default function App() {
         <div className="side-panel">
           <PlayerInfo
             player={gameState.players[0]}
+            quota={gameState.quota}
             isActive={gameState.currentPlayerIndex === 0}
             isMe={playerIndex === 0}
           />
           <PlayerInfo
             player={gameState.players[1]}
+            quota={gameState.quota}
             isActive={gameState.currentPlayerIndex === 1}
             isMe={playerIndex === 1}
           />
@@ -210,15 +216,14 @@ export default function App() {
         <div className="center-panel">
           <CoreDisplay
             core={gameState.core}
-            quota={gameState.quota}
             sum={runningSum}
             moveResult={moveResult}
           />
           <Board
-            board={gameState.board}
+            centerCoins={gameState.centerCoins}
+            borderCoins={gameState.borderCoins}
             selectedCoinIds={selectedCoinIds}
             onCoinClick={isMyTurn ? toggleCoin : null}
-            moveResult={moveResult}
           />
           <RunningSum sum={runningSum} core={gameState.core} />
           {isMyTurn && (
@@ -244,37 +249,34 @@ export default function App() {
           {moveResult && (
             <div
               className={`move-result ${
-                moveResult.moveSuccess
-                  ? moveResult.isCoreBreak
-                    ? 'core-break'
-                    : 'success'
-                  : 'failure'
+                moveResult.moveSuccess ? 'success' : 'failure'
               }`}
             >
               {moveResult.timerExpired ? (
                 <span>⏱ Time&apos;s up!</span>
-              ) : moveResult.isCoreBreak ? (
-                <span>✨ CORE BREAK! +{moveResult.scoreGain}</span>
               ) : moveResult.moveSuccess ? (
-                <span>✓ Success! +{moveResult.scoreGain}</span>
+                <span>
+                  ✓ Core Break! ×{moveResult.multiplier}
+                  {moveResult.echoBonus > 0 && ` (+${moveResult.echoBonus} echo)`}
+                  {' '}+{moveResult.coinsGained} coins
+                </span>
               ) : (
-                <span>✗ Failure</span>
+                <span>✗ Invalid</span>
               )}
             </div>
           )}
           <div className="round-info">
-            Round {Math.ceil(gameState.round / 2)} /{' '}
-            {gameState.maxRounds}
+            Turn {gameState.turn} / {gameState.maxTurns * 2}
           </div>
           <div className="legend">
             <div className="legend-item">
-              <span className="legend-dot normal" /> Normal
+              <span className="legend-dot center" /> Center
             </div>
             <div className="legend-item">
-              <span className="legend-dot multiplier" /> Multiplier ×2
+              <span className="legend-dot center_echo" /> Echo (×)
             </div>
             <div className="legend-item">
-              <span className="legend-dot echo" /> Echo ↺
+              <span className="legend-dot border" /> Border
             </div>
           </div>
         </div>

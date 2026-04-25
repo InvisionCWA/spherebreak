@@ -152,7 +152,6 @@
   animation: fadeIn 0.3s ease;
 }
 .move-result.success  { background: rgba(0,200,100,0.2); border: 1px solid #00c864; color: #00c864; }
-.move-result.core-break { background: rgba(255,215,0,0.2); border: 1px solid gold; color: gold; }
 .move-result.failure  { background: rgba(200,50,50,0.2);  border: 1px solid #c83232; color: #ff6666; }
 
 @keyframes fadeIn {
@@ -207,6 +206,6 @@
   border-radius: 50%;
   display: inline-block;
 }
-.legend-dot.normal      { background: #4466cc; }
-.legend-dot.multiplier  { background: #cc6644; }
-.legend-dot.echo        { background: #44cc88; }
+.legend-dot.center       { background: #4488dd; }
+.legend-dot.center_echo  { background: #cc8822; }
+.legend-dot.border       { background: #4466cc; }
