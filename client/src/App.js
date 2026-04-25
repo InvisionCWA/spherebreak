@@ -19,7 +19,7 @@ export default function App() {
   const [selectedCoinIds, setSelectedCoinIds] = useState([]);
   const [playerName, setPlayerName] = useState('');
   const [joined, setJoined] = useState(false);
-  const [turnTimer, setTurnTimer] = useState(15);
+  const [turnTimer, setTurnTimer] = useState(120);
   const [moveResult, setMoveResult] = useState(null);
   const [moveError, setMoveError] = useState(null);
   const [disconnected, setDisconnected] = useState(false);

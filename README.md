@@ -107,6 +107,12 @@ docker compose up --build
 
 The app will be available at http://localhost:3000.
 
+On the first run, Docker builds the React client and bundles it into the server image automatically. After that, you can start the existing image again with:
+
+```bash
+docker compose up
+```
+
 To stop it:
 
 ```bash
