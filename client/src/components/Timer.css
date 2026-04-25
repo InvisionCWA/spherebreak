@@ -1,0 +1,30 @@
+.timer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(100, 100, 255, 0.2);
+  border-radius: 20px;
+  font-size: 1rem;
+  color: #888;
+}
+
+.timer.my-turn {
+  border-color: #44cc88;
+  color: #44cc88;
+}
+
+.timer.urgent {
+  border-color: #ff4444;
+  color: #ff4444;
+  animation: flash 0.5s ease-in-out infinite;
+}
+
+@keyframes flash {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+.timer-icon { font-size: 0.9rem; }
+.timer-value { font-weight: bold; font-size: 1.1rem; }
