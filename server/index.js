@@ -4,6 +4,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 const {
   createGame,
   handleMove,
@@ -22,7 +23,16 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 
+// Rate limiter for HTTP routes (static files / SPA fallback)
+const httpLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 200,            // max 200 requests per IP per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Serve static React build
+app.use(httpLimiter);
 app.use(express.static(path.join(__dirname, '..', 'client', 'build')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'client', 'build', 'index.html'));
