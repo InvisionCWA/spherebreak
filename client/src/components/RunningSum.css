@@ -1,0 +1,25 @@
+.running-sum {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(100, 100, 255, 0.2);
+  border-radius: 8px;
+  font-size: 1.1rem;
+}
+
+.sum-label { color: #888; }
+
+.sum-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #ccccff;
+  min-width: 60px;
+  text-align: center;
+}
+
+.sum-matches {
+  font-size: 0.85rem;
+  color: #aacc88;
+}
