@@ -228,8 +228,74 @@ Server test suites:
 ## Docker
 
 ```bash
-cd /home/runner/work/spherebreak/spherebreak
 docker compose up --build
+```
+
+## Portainer Deployment
+
+### Persistent storage
+
+All leaderboard, match history, and player stats are stored in a SQLite database at `/app/data/spherebreak.db` inside a Docker named volume (`spherebreak_data`). This volume survives container restarts, image rebuilds, and stack redeployments.
+
+**What is persisted** (in the named volume):
+- User accounts and display names
+- Leaderboard stats (rating, wins, losses, win rate, best scores, best combo, best streak, fastest break)
+- Match records and participants
+- Replay event logs
+
+**What is NOT persisted** (in-memory only):
+- Active match state (boards, current scores, timers, player sockets)
+- Quick queue state
+- CPU fallback timers
+
+Any match that is in progress when the container stops will be lost. Players can start a new match after a redeploy. Completed ranked matches are already written to the database and are safe.
+
+### First-time Portainer stack deployment
+
+1. Build the image on your Docker host:
+   ```bash
+   docker compose build
+   ```
+   This creates the `spherebreak:latest` image locally.
+
+2. In Portainer, go to **Stacks → Add stack**.
+
+3. Paste the contents of `docker-compose.yml` into the web editor (or point Portainer at the repository).
+
+4. Click **Deploy the stack**.
+
+Portainer will start the container. On the first boot the entrypoint initialises the database schema automatically. The app is available on port `3000`.
+
+### Updating the app
+
+1. Pull or checkout the new code on your Docker host.
+
+2. Rebuild the image:
+   ```bash
+   docker compose build
+   # Optionally tag and push to a registry:
+   # docker tag spherebreak:latest yourregistry/spherebreak:v1.2.3
+   # docker push yourregistry/spherebreak:v1.2.3
+   ```
+
+3. In Portainer, open the stack and click **Update the stack**.
+
+The named volume is untouched during the update. The entrypoint re-runs `prisma db push` on startup to apply any schema changes safely.
+
+> **Active games**: any match in progress at deploy time will be interrupted. Players will be disconnected and must start a new match. Completed games are safe in the database.
+
+### Backing up the database
+
+```bash
+docker run --rm -v spherebreak_data:/data -v $(pwd):/backup alpine \
+  tar czf /backup/spherebreak_backup_$(date +%Y%m%d).tar.gz /data
+```
+
+Restore:
+
+```bash
+docker run --rm -v spherebreak_data:/data -v $(pwd):/backup alpine \
+  tar xzf /backup/spherebreak_backup_YYYYMMDD.tar.gz -C /
 ```
 
 ## Architecture Diagram
