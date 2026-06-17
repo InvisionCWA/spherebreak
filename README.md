@@ -6,12 +6,127 @@ This repository contains only original game content and original assets.
 
 ## Features
 
-- Real-time multiplayer gameplay over Socket.IO
-- Ranked and casual match modes
-- Bot opponents with automatic CPU fallback
-- Server-side move validation and anti-cheat checks
-- Persistent leaderboard data with Prisma + SQLite
-- React client served by Express in production
+- The board has a central target number from 1 to 9.
+- Each move must include at least one inner token.
+- Selected token values must sum to a positive multiple of the target number.
+- Valid Break moves grant score, combo, streak, and quota progress.
+- The server authoritatively validates all moves, timing, scoring, and outcomes.
+
+## Core Rules
+
+- Target number range: 1 to 9.
+- Token values: 1 to 9.
+- Inner tokens: required zone; at least one must be selected.
+- Outer tokens: optional selection.
+- Invalid move: rejected by server; does not advance trusted scoring.
+- Match win condition:
+  - first to quota, or
+  - highest score when turn limit ends.
+
+## Match Settings
+
+Supported settings:
+
+- `turnLimit`
+- `secondsPerTurn`
+- `quotaToWin`
+- `targetNumberRange`
+- `boardSize`
+- `maxPlayers`
+- `ranked`
+- `tokenReplacementMode`
+- `comboRules`
+
+## Multiplayer Lifecycle
+
+Match states:
+
+- `waiting`
+- `starting`
+- `active`
+- `completed`
+- `abandoned`
+
+Features:
+
+- Create match
+- Join match by code
+- Quick queue placeholder
+- Ready state and countdown
+- Real-time board sync via Socket.IO
+- Server turn timer authority
+- Reconnect support by persisted player id
+- Rematch request
+- Bot practice mode (easy, normal, hard)
+- Automatic CPU fallback for waiting multiplayer matches after 60 seconds
+
+## Anti-Cheat Model
+
+The server is authoritative for:
+
+- RNG and board generation
+- target number updates
+- move validation
+- score and combo calculations
+- turn timing
+- winner determination
+- ranked leaderboard writes
+
+Implemented protections:
+
+- per-player move rate limiting
+- duplicate nonce rejection
+- stale board version rejection
+- inactive-player rejection
+- turn-window validation
+- unknown token id rejection
+- suspicious activity flags for:
+  - request flooding
+  - duplicate nonce spam
+  - disconnect abuse
+  - stale board misuse
+- replay event log per match for audit
+
+## Leaderboards
+
+Tracked stats include:
+
+- rating
+- wins
+- losses
+- win rate
+- best score
+- best combo
+- best streak
+- fastest valid Break
+- weekly ranked scores
+- all-time ranked scores
+
+### Celestial rank badges
+
+Spherebreak exposes a server-authored rank badge anywhere player identities appear. The badge is decorative, but the underlying rank DTO is trusted server output and includes the current tier, short code, icon, colors, and progression toward the next tier when applicable.
+
+Current ladder:
+
+- Comet
+- Lumen
+- Nova
+- Astral
+
+High-level formula:
+
+- trusted `LeaderboardStat.rating` is the primary rank input
+- if a player has malformed or missing rating data, the server falls back to a deterministic estimate using persisted wins and losses (`1000 + wins*20 - losses*10`)
+- fallback promotion is capped below Nova until a player has at least 3 recorded ranked matches, which keeps early data from over-promoting accounts
+- top-rank players do not receive next-rank progress fields
+
+Rules:
+
+- only server-completed ranked matches update ranked leaderboard stats
+- casual matches do not affect ranked leaderboard standings
+- clients cannot write rank or trusted stat fields; socket and HTTP responses always recompute rank server-side
+- server-generated CPU opponents use persisted ranked stats when available; otherwise they render with the neutral fallback rank
+- rank badges always include text labels and compact non-color cues for accessibility, and long names truncate safely on mobile widths
 
 ## Tech Stack
 
@@ -201,6 +316,20 @@ docker run --rm -v spherebreak-data:/data -v $(pwd):/backup alpine \
 
 Run the main checks:
 
+```mermaid
+flowchart TD
+    A[Match ends] --> B{server completed and ranked?}
+    B -- no --> C[Skip ranked leaderboard update]
+    B -- yes --> D[Compute winner and participant stats]
+    D --> E[Upsert leaderboard stats]
+    E --> F[Persist match record]
+    F --> G[Persist replay events]
+    G --> H[Recompute public rank DTO from trusted persisted stats]
+```
+
+Rank DTOs are attached to leaderboard rows, profile responses, open lobby payloads, and live/public player state. Clients render them but never author them.
+
+## CPU Fallback Lifecycle
 ```bash
 npm test --prefix server
 npm test --prefix client -- --watch=false

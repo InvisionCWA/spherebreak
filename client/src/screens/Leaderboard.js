@@ -1,6 +1,6 @@
 import React from 'react';
 import CelestialPanel from '../components/ui/CelestialPanel';
-import RankBadge from '../components/ui/RankBadge';
+import PlayerIdentity from '../components/ui/PlayerIdentity';
 
 export default function Leaderboard({ entries, weeklyEntries, onRefresh, onBack }) {
   return (
@@ -13,12 +13,16 @@ export default function Leaderboard({ entries, weeklyEntries, onRefresh, onBack 
             {entries.map((entry) => (
               <li key={entry.userId}>
                 <div>
-                  <strong>{entry.rank}. {entry.displayName}</strong>
-                  {entry.isBot && <small> (Bot)</small>}
-                  <small>{entry.wins}W / {entry.losses}L</small>
+                  <PlayerIdentity
+                    displayName={`${entry.rank}. ${entry.displayName}`}
+                    playerRank={entry.playerRank}
+                    isBot={entry.isBot}
+                    meta={`${entry.wins}W / ${entry.losses}L`}
+                  />
                 </div>
-                <div>
-                  <RankBadge rating={entry.rating} />
+                <div className="leaderboard-points">
+                  <strong>{entry.rating}</strong>
+                  <small>rating</small>
                 </div>
               </li>
             ))}
@@ -32,7 +36,11 @@ export default function Leaderboard({ entries, weeklyEntries, onRefresh, onBack 
           <ul className="leaderboard-list" aria-label="Weekly leaderboard">
             {weeklyEntries.map((entry) => (
               <li key={entry.userId}>
-                <span>{entry.rank}. {entry.displayName}</span>
+                <PlayerIdentity
+                  displayName={`${entry.rank}. ${entry.displayName}`}
+                  playerRank={entry.playerRank}
+                  meta={`${entry.matches} ranked matches`}
+                />
                 <span>{entry.weeklyScore} pts</span>
               </li>
             ))}

@@ -18,6 +18,7 @@ const { AntiCheat } = require('../domain/antiCheat');
 const { pickBotMove, getBotThinkDelayMs, generateBotHandle } = require('../domain/botEngine');
 const { updateLeaderboardFromMatch } = require('./leaderboardService');
 const { addReplayEvent } = require('./replayService');
+const { getRanksForUsers } = require('./rankService');
 
 class LobbyService {
   constructor(options = {}) {
@@ -167,10 +168,35 @@ class LobbyService {
     return this.matches.get(matchId) || null;
   }
 
-  getPublicStateForPlayer(playerId) {
+  async getPublicStateForPlayer(playerId, rankByPlayerId = null) {
     const match = this.getMatchForPlayer(playerId);
     if (!match) return null;
-    return getPublicState(match, playerId);
+    const resolvedRanks = rankByPlayerId || await this.getRankMapForPlayers(Array.from(match.players.values()));
+    return getPublicState(match, playerId, resolvedRanks);
+  }
+
+  async getRankMapForPlayers(players = []) {
+    return getRanksForUsers(players.map((player) => ({ id: player.id })));
+  }
+
+  async buildLobbyList() {
+    const openMatches = Array.from(this.matches.values()).filter((match) => match.status === MATCH_STATUS.WAITING);
+    const rankMap = await this.getRankMapForPlayers(openMatches.flatMap((match) => Array.from(match.players.values())));
+
+    return openMatches.map((match) => ({
+      id: match.id,
+      code: match.code,
+      mode: match.mode,
+      players: Array.from(match.players.values()).map((player) => ({
+        id: player.id,
+        displayName: player.displayName,
+        ready: player.ready,
+        isBot: player.isBot,
+        playerRank: rankMap[player.id] || null,
+      })),
+      maxPlayers: match.settings.maxPlayers,
+      ranked: match.settings.ranked,
+    }));
   }
 
   processMove({ playerId, move }) {

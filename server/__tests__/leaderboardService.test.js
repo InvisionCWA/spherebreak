@@ -3,10 +3,15 @@
 const mockPrisma = {
   user: {
     upsert: jest.fn(),
+    findUnique: jest.fn(),
   },
   leaderboardStat: {
     findUnique: jest.fn(),
     upsert: jest.fn(),
+    findMany: jest.fn(),
+  },
+  matchParticipant: {
+    groupBy: jest.fn(),
   },
   matchRecord: {
     create: jest.fn(),
@@ -17,13 +22,17 @@ jest.mock('../src/db/client', () => ({
   getPrismaClient: () => mockPrisma,
 }));
 
-const { updateLeaderboardFromMatch } = require('../src/services/leaderboardService');
+const { BASE_RATING } = require('../src/domain/rankDomain');
+const { updateLeaderboardFromMatch, getLeaderboard, getProfile } = require('../src/services/leaderboardService');
 
 describe('leaderboard service', () => {
   beforeEach(() => {
     mockPrisma.user.upsert.mockReset().mockResolvedValue({});
+    mockPrisma.user.findUnique.mockReset().mockResolvedValue(null);
     mockPrisma.leaderboardStat.findUnique.mockReset().mockResolvedValue(null);
+    mockPrisma.leaderboardStat.findMany.mockReset().mockResolvedValue([]);
     mockPrisma.leaderboardStat.upsert.mockReset().mockResolvedValue({});
+    mockPrisma.matchParticipant.groupBy.mockReset().mockResolvedValue([]);
     mockPrisma.matchRecord.create.mockReset().mockResolvedValue({});
   });
 
@@ -141,5 +150,100 @@ describe('leaderboard service', () => {
     expect(mockPrisma.user.upsert).not.toHaveBeenCalled();
     expect(mockPrisma.leaderboardStat.upsert).not.toHaveBeenCalled();
     expect(mockPrisma.matchRecord.create).not.toHaveBeenCalled();
+  });
+
+  test('all-time leaderboard entries include server-computed rank dto', async () => {
+    mockPrisma.leaderboardStat.findMany.mockResolvedValue([
+      {
+        userId: 'human-1',
+        rating: 1220,
+        wins: 9,
+        losses: 2,
+        winRate: 0.8182,
+        bestScore: 440,
+        bestCombo: 4,
+        bestStreak: 7,
+        fastestValidBreakMs: 812,
+        user: { displayName: 'PlayerOne', isBot: false },
+      },
+    ]);
+
+    const rows = await getLeaderboard({ period: 'all-time' });
+
+    expect(rows[0].playerRank).toEqual(expect.objectContaining({
+      displayName: 'Nova',
+      shortLabel: 'NOV',
+      nextRankName: 'Astral',
+    }));
+  });
+
+  test('weekly leaderboard entries include server-computed rank dto from trusted stats', async () => {
+    mockPrisma.matchParticipant.groupBy.mockResolvedValue([
+      {
+        userId: 'human-1',
+        displayName: 'PlayerOne',
+        _sum: { score: 540 },
+        _count: { _all: 4 },
+      },
+    ]);
+    mockPrisma.leaderboardStat.findMany.mockResolvedValue([
+      {
+        userId: 'human-1',
+        rating: 1450,
+        wins: 10,
+        losses: 2,
+      },
+    ]);
+
+    const rows = await getLeaderboard({ period: 'weekly' });
+
+    expect(rows[0].playerRank).toEqual(expect.objectContaining({
+      displayName: 'Astral',
+      isTopRank: true,
+    }));
+  });
+
+  test('profile response includes rank dto and safe fallback for malformed stats', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 'human-1',
+      displayName: 'PlayerOne',
+      isBot: false,
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+    });
+    mockPrisma.leaderboardStat.findUnique.mockResolvedValue({
+      userId: 'human-1',
+      rating: null,
+      wins: 'bad',
+      losses: -4,
+      winRate: 0,
+      bestScore: 0,
+      bestCombo: 0,
+      bestStreak: 0,
+      fastestValidBreakMs: null,
+    });
+
+    const profile = await getProfile('human-1');
+
+    expect(profile.playerRank).toEqual(expect.objectContaining({
+      rating: BASE_RATING,
+      displayName: 'Lumen',
+    }));
+  });
+
+  test('profile fallback rank still resolves for players without persisted stats', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 'cpu-scout',
+      displayName: 'Scout',
+      isBot: true,
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+    });
+    mockPrisma.leaderboardStat.findUnique.mockResolvedValue(null);
+
+    const profile = await getProfile('cpu-scout');
+
+    expect(profile.playerRank).toEqual(expect.objectContaining({
+      displayName: 'Lumen',
+      rating: BASE_RATING,
+    }));
   });
 });

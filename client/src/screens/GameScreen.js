@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import CelestialPanel from '../components/ui/CelestialPanel';
 import OrbToken from '../components/ui/OrbToken';
+import PlayerIdentity from '../components/ui/PlayerIdentity';
 
 function useCountdown(endsAt) {
   const [secondsLeft, setSecondsLeft] = useState(() => Math.max(0, Math.ceil((endsAt - Date.now()) / 1000)));
@@ -32,14 +33,12 @@ function ComboExplanation({ lastMove, comboRuleType }) {
     } else {
       detail = `Break Chain reset — multiple changed (×${achievedMultiple})`;
     }
+  } else if (comboContinued && comboIncreased) {
+    detail = `Chain maintained — same token count (${tokenCount})`;
+  } else if (!comboContinued) {
+    detail = `Break Chain started (${tokenCount} token${tokenCount !== 1 ? 's' : ''})`;
   } else {
-    if (comboContinued && comboIncreased) {
-      detail = `Chain maintained — same token count (${tokenCount})`;
-    } else if (!comboContinued) {
-      detail = `Break Chain started (${tokenCount} token${tokenCount !== 1 ? 's' : ''})`;
-    } else {
-      detail = `Chain reset — token count changed (${tokenCount})`;
-    }
+    detail = `Chain reset — token count changed (${tokenCount})`;
   }
 
   return (
@@ -73,6 +72,7 @@ export default function GameScreen({
 
   const selectionOrder = Object.fromEntries(selected.map((id, index) => [id, index + 1]));
   const activePlayer = state.players.find((p) => p.id === activeId);
+  const lastMovePlayer = lastMove ? state.players.find((p) => p.id === lastMove.playerId) : null;
 
   return (
     <div className="screen-grid game-layout">
@@ -81,12 +81,15 @@ export default function GameScreen({
           {state.players.map((player) => (
             <li key={player.id} className={player.id === activeId ? 'active-player' : ''}>
               <div>
-                <strong>{player.displayName}</strong>
-                <small>{player.isBot ? 'Bot' : 'Player'}{player.id === selfId ? ' (You)' : ''}</small>
+                <PlayerIdentity
+                  displayName={player.displayName}
+                  playerRank={player.playerRank}
+                  isBot={player.isBot}
+                  meta={`${player.id === selfId ? 'You' : 'Opponent'} • quota ${player.quotaProgress}/${state.settings.quotaToWin}`}
+                />
               </div>
               <div className="score-block">
                 <span>{player.score} pts</span>
-                <small>quota {player.quotaProgress}/{state.settings.quotaToWin}</small>
                 {player.combo > 0 && <small>combo {player.combo}</small>}
               </div>
             </li>
@@ -151,7 +154,18 @@ export default function GameScreen({
         </div>
       </CelestialPanel>
 
-      <CelestialPanel title="Turn HUD" subtitle={isMyTurn ? 'Your turn' : `Waiting for ${activePlayer?.displayName || 'opponent'}`}>
+      <CelestialPanel title="Turn HUD" subtitle={isMyTurn ? 'Your turn' : 'Waiting for opponent'}>
+        {activePlayer && (
+          <div className="hud-active-player">
+            <span className="hud-active-player__label">Active pilot</span>
+            <PlayerIdentity
+              displayName={activePlayer.displayName}
+              playerRank={activePlayer.playerRank}
+              isBot={activePlayer.isBot}
+              meta={activePlayer.id === selfId ? 'Your turn' : 'Incoming turn'}
+            />
+          </div>
+        )}
         <p className={timerUrgent ? 'timer-urgent' : ''} aria-live="polite" aria-label={`Time remaining: ${timerSeconds} seconds`}>
           Time: {timerSeconds}s
         </p>
@@ -188,7 +202,15 @@ export default function GameScreen({
         {moveError && <p className="error-text" role="alert">{moveError}</p>}
         {lastMove && (
           <div className="result-box" aria-label="Last move result">
-            <p>Last: {state.players.find((p) => p.id === lastMove.playerId)?.displayName || 'player'}</p>
+            {lastMovePlayer && (
+              <PlayerIdentity
+                displayName={lastMovePlayer.displayName}
+                playerRank={lastMovePlayer.playerRank}
+                isBot={lastMovePlayer.isBot}
+                meta="Last break"
+                className="result-box__identity"
+              />
+            )}
             <p>sum {lastMove.sum}{lastMove.achievedMultiple ? ` (×${lastMove.achievedMultiple})` : ''}, +{lastMove.scoreGain} pts</p>
             {lastMove.tokenCount !== null && lastMove.tokenCount !== undefined && <p>Tokens used: {lastMove.tokenCount}</p>}
             {lastMove.combo > 0 && <p>Combo {lastMove.combo} / Streak {lastMove.streak}</p>}

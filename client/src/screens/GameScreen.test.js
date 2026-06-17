@@ -289,7 +289,7 @@ describe('GameScreen rendering', () => {
     expect(screen.getByText(/80 pts/)).toBeTruthy();
   });
 
-  test('bot player is labeled as Bot', () => {
+  test('bot player is labeled as CPU', () => {
     const state = {
       ...BASE_STATE,
       players: [
@@ -298,7 +298,7 @@ describe('GameScreen rendering', () => {
       ],
     };
     renderGame({ state });
-    expect(screen.getByText(/Bot/)).toBeTruthy();
+    expect(screen.getByText(/CPU/)).toBeTruthy();
   });
 
   test('onSelect is called when a token is clicked on your turn', () => {

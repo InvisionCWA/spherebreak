@@ -1,6 +1,25 @@
 'use strict';
 
 const { getPrismaClient } = require('../db/client');
+const { buildRankDto } = require('../domain/rankDomain');
+const { getRanksForUsers } = require('./rankService');
+
+/**
+ * Build neutral trusted stats for players without persisted ranked history.
+ * @returns {{rating:number,wins:number,losses:number,winRate:number,bestScore:number,bestCombo:number,bestStreak:number,fastestValidBreakMs:null}}
+ */
+function buildDefaultStats() {
+  return {
+    rating: 1000,
+    wins: 0,
+    losses: 0,
+    winRate: 0,
+    bestScore: 0,
+    bestCombo: 0,
+    bestStreak: 0,
+    fastestValidBreakMs: null,
+  };
+}
 
 async function ensureUser(prisma, userId, displayName, isBot = false) {
   return prisma.user.upsert({
@@ -98,6 +117,24 @@ async function updateLeaderboardFromMatch(match) {
   });
 }
 
+function decorateAllTimeEntry(row, index) {
+  return {
+    rank: index + 1,
+    userId: row.userId,
+    displayName: row.user?.displayName || row.userId,
+    isBot: Boolean(row.user?.isBot),
+    rating: row.rating,
+    wins: row.wins,
+    losses: row.losses,
+    winRate: row.winRate,
+    bestScore: row.bestScore,
+    bestCombo: row.bestCombo,
+    bestStreak: row.bestStreak,
+    fastestValidBreakMs: row.fastestValidBreakMs,
+    playerRank: buildRankDto(row),
+  };
+}
+
 async function getLeaderboard({ period = 'all-time', limit = 50 } = {}) {
   const prisma = getPrismaClient();
   if (!prisma) return [];
@@ -119,12 +156,15 @@ async function getLeaderboard({ period = 'all-time', limit = 50 } = {}) {
       take: limit,
     });
 
+    const rankMap = await getRanksForUsers(rows.map((row) => ({ userId: row.userId })));
+
     return rows.map((row, idx) => ({
       rank: idx + 1,
       userId: row.userId,
       displayName: row.displayName,
       weeklyScore: row._sum.score || 0,
       matches: row._count._all,
+      playerRank: rankMap[row.userId] || buildRankDto({}),
     }));
   }
 
@@ -134,20 +174,7 @@ async function getLeaderboard({ period = 'all-time', limit = 50 } = {}) {
     include: { user: true },
   });
 
-  return stats.map((row, index) => ({
-    rank: index + 1,
-    userId: row.userId,
-    displayName: row.user?.displayName || row.userId,
-    isBot: Boolean(row.user?.isBot),
-    rating: row.rating,
-    wins: row.wins,
-    losses: row.losses,
-    winRate: row.winRate,
-    bestScore: row.bestScore,
-    bestCombo: row.bestCombo,
-    bestStreak: row.bestStreak,
-    fastestValidBreakMs: row.fastestValidBreakMs,
-  }));
+  return stats.map(decorateAllTimeEntry);
 }
 
 async function getProfile(userId) {
@@ -161,21 +188,15 @@ async function getProfile(userId) {
 
   if (!user) return null;
 
+  const stats = stat || buildDefaultStats();
+
   return {
     id: user.id,
     displayName: user.displayName,
     isBot: Boolean(user.isBot),
     createdAt: user.createdAt,
-    stats: stat || {
-      rating: 1000,
-      wins: 0,
-      losses: 0,
-      winRate: 0,
-      bestScore: 0,
-      bestCombo: 0,
-      bestStreak: 0,
-      fastestValidBreakMs: null,
-    },
+    stats,
+    playerRank: buildRankDto(stats),
   };
 }
 
