@@ -4,5 +4,6 @@ README.md
 client/node_modules
 client/build
 server/node_modules
+server/prisma/*.db
 npm-debug.log
 docker-compose.override.yml
