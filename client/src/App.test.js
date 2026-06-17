@@ -4,6 +4,7 @@ import App from './App';
 jest.mock('socket.io-client', () => ({
   io: () => ({
     on: jest.fn(),
+    off: jest.fn(),
     emit: jest.fn(),
     disconnect: jest.fn(),
   }),
