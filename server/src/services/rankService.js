@@ -7,7 +7,6 @@ async function getRanksForUsers(users = []) {
   const normalizedUsers = users
     .map((user) => ({
       userId: user?.userId || user?.id || null,
-      stats: user?.stats || null,
     }))
     .filter((user) => user.userId);
 
@@ -25,7 +24,7 @@ async function getRanksForUsers(users = []) {
   }
 
   return normalizedUsers.reduce((accumulator, user) => {
-    const trustedStats = persistedStatsByUserId.get(user.userId) || user.stats || null;
+    const trustedStats = persistedStatsByUserId.get(user.userId) || null;
     accumulator[user.userId] = buildRankDto(trustedStats || {});
     return accumulator;
   }, {});

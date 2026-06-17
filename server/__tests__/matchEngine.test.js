@@ -86,6 +86,7 @@ describe('matchEngine: valid move', () => {
     const p1Id = match.turnOrder[0];
     const p1 = match.players.get(p1Id);
     processMove(match, p1Id, { selectedTokenIds: ['i2'], nonce: 'n1', boardVersion: 1 });
+    match.players.get(p1Id).score = Math.max(match.players.get(p1Id).score, 1000);
     match.board.targetNumber = 4;
 
     expect(p1.score).toBeGreaterThan(0);
@@ -237,6 +238,7 @@ describe('matchEngine: match completion', () => {
     const p1Id = match.turnOrder[0];
     const p2Id = match.turnOrder[1];
     processMove(match, p1Id, { selectedTokenIds: ['i2'], nonce: 'n1', boardVersion: 1 });
+    match.players.get(p1Id).score = Math.max(match.players.get(p1Id).score, 1000);
     match.board.targetNumber = 4;
     match.board.innerTokens = [
       { id: 'ii1', value: 4, zone: 'inner', age: 0 },

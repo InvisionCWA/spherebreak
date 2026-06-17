@@ -104,6 +104,8 @@ function normalizeStats(stats = {}) {
 
 function calculateFallbackRating(stats = {}) {
   const normalized = normalizeStats(stats);
+  // Mirror the persisted ranked update deltas so fallback rank stays deterministic
+  // and server-authored even when rating is missing or malformed.
   const estimate = BASE_RATING + (normalized.wins * WIN_RATING_DELTA) - (normalized.losses * LOSS_RATING_DELTA);
   if (normalized.totalMatches < MIN_MATCHES_FOR_CONFIDENT_FALLBACK) {
     // Prevent early over-promotion until a player has enough ranked history.
