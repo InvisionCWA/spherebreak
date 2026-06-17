@@ -1,10 +1,10 @@
 # Celestial Break
 
-Celestial Break is an original multiplayer competitive number puzzle game inspired by the broad concept of token selection and multiple matching. This project does not include Final Fantasy assets, names, characters, music, iconography, screenshots, or proprietary terminology.
+Celestial Break is a real-time multiplayer number puzzle game. Players select tokens so the sum is a positive multiple of the current target number. The backend is server-authoritative for match logic, anti-cheat validation, timing, and leaderboard persistence.
 
-## Game Overview
+This repository contains only original game content and original assets.
 
-Players compete by selecting numbered tokens to form valid Break moves:
+## Features
 
 - The board has a central target number from 1 to 9.
 - Each move must include at least one inner token.
@@ -130,44 +130,47 @@ Rules:
 
 ## Tech Stack
 
-- Frontend: React 18 (Create React App), JavaScript
+- Frontend: React 18 (Create React App)
 - Backend: Node.js, Express, Socket.IO
-- Persistence: Prisma ORM with SQLite default (`DATABASE_URL`)
-- Tests: Jest (server + client)
-- Container: Docker and Docker Compose
+- Data: Prisma ORM with SQLite (default)
+- Tests: Jest (server and client)
+- Containers: Docker and Docker Compose
 
-## Project Structure
+## Repository Layout
 
 ```text
 .
 |-- client/
-|   |-- src/screens/
-|   |-- src/components/ui/
-|   `-- src/state/
+|   |-- src/
+|   |-- public/
+|   `-- package.json
 |-- server/
-|   |-- src/domain/
-|   |-- src/services/
-|   |-- src/contracts/
-|   |-- src/db/
-|   `-- prisma/
-|-- docs/assets.md
+|   |-- src/
+|   |-- prisma/
+|   |-- __tests__/
+|   |-- index.js
+|   `-- package.json
+|-- marketing/
+|-- e2e/
+|-- docker-compose.yml
 |-- Dockerfile
-`-- docker-compose.yml
+`-- README.md
 ```
 
-## Installation
+## Prerequisites
 
-### 1) Install dependencies
+- Node.js 20+
+- npm 10+
+- Docker, if you want to use the container workflow
+
+## Quick Start
+
+Install dependencies:
 
 ```bash
-cd client
-npm install
-
-cd ../server
-npm install
+npm install --prefix server
+npm install --prefix client
 ```
-
-### 2) Configure environment
 
 Create `server/.env`:
 
@@ -177,216 +180,141 @@ PORT=3000
 NODE_ENV=development
 ```
 
-### 3) Prepare database
+Initialize the database:
 
 ```bash
-cd server
-npm run db:generate
-npm run db:push
-npm run db:seed
+npm run db:generate --prefix server
+npm run db:push --prefix server
+npm run db:seed --prefix server
 ```
 
-## Run Development
-
-Start backend:
+Start the backend:
 
 ```bash
-cd server
-npm run dev
+npm run dev --prefix server
 ```
 
-Start frontend in another terminal:
+Start the frontend in another terminal:
 
 ```bash
-cd client
-PORT=3001 REACT_APP_SERVER_URL=http://localhost:3000 npm start
+npm start --prefix client
 ```
 
-Open `http://localhost:3001`.
+If you want the client dev server to talk to the backend on a different port, set `REACT_APP_SERVER_URL=http://localhost:3000` before starting the client.
 
-Marketing site:
+## Gameplay Rules
 
-- static files live in `marketing/`
-- production server route: `http://localhost:3000/marketing/`
-- primary play CTA points to `/`, which is the served game client route
+- Token values range from 1 to 9
+- The target number range is configurable, with 1 to 9 as the default range
+- A valid move must include at least one inner token
+- Selected token values must sum to a positive multiple of the target
+- Match ends when quota is reached or the turn limit is hit
 
-## Run Tests
+## Match Lifecycle
 
-Server tests:
+States:
 
-```bash
-cd server
-npm test
-```
+- `waiting`
+- `starting`
+- `active`
+- `completed`
+- `abandoned`
 
-Client tests:
+Behavior:
 
-```bash
-cd client
-CI=true npm test -- --watch=false
-```
+- Reconnect support by persisted player id
+- Ready-check and countdown before match start
+- Automatic bot injection after 60 seconds when matchmaking stalls
 
-Client build:
+## Leaderboard and Persistence
 
-```bash
-cd client
-npm run build
-```
+Persisted data includes:
 
-### Test coverage
+- Users and display names
+- Leaderboard stats, including rating, wins, losses, win rate, best scores, best combo, best streak, and fastest Break
+- Match records and participants
+- Replay event logs
 
-Server test suites:
+Only server-completed ranked matches update ranked leaderboard values.
 
-- `gameEngine.test.js` - rules engine: board creation, move validation, board mutation, valid move enumeration, scoring
-- `__tests__/rulesEngine.test.js` - validateMoveInput edge cases, calculateSelection, createBoard, applyBoardMutation, enumerateValidMoves
-- `__tests__/matchEngine.test.js` - valid/invalid move handling, score/combo/streak/quota updates, match completion (quota and turn limit), winner determination, turn timeouts, addPlayer full/reconnect behaviour, getPublicState shape
-- `__tests__/antiCheat.test.js` - duplicate nonce rejection, rate limit flooding
-- `__tests__/botEngine.test.js` - bot move selection validity
-- `__tests__/lobbyService.test.js` - stale board rejection, inactive player rejection, duplicate nonce via lobby, CPU fallback timing, fallback cancellation, no-duplicate fallback, fallback lifecycle, bot turn pipeline, reconnect behaviour, reconnect no-duplicate, rematch fresh state, race condition
-- `__tests__/leaderboardService.test.js` - ranked match with CPU updates leaderboard, casual match does not, abandoned match does not
+Live in-progress match state is in memory and is not durable across server restarts.
+
+### Where scores are stored
+
+- Local development: SQLite file from `DATABASE_URL`, usually `server/prisma/dev.db`
+- Container deployment: whatever path `DATABASE_URL` points to; use a mounted volume for persistence
 
 ## Docker
+
+Run with the current compose file:
 
 ```bash
 docker compose up --build
 ```
 
+The included compose file is minimal and exposes port 3000.
+
+Recommended persistent setup for Portainer or other production-like deployments:
+
+```yaml
+services:
+  spherebreak:
+    image: your-registry/spherebreak:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=file:/data/dev.db
+    volumes:
+      - spherebreak-data:/data
+    restart: unless-stopped
+
+volumes:
+  spherebreak-data:
+```
+
+This keeps leaderboard and match history data across image rebuilds and stack updates.
+
 ## Portainer Deployment
 
-### Persistent storage
+### First-time deployment
 
-All leaderboard, match history, and player stats are stored in a SQLite database at `/app/data/spherebreak.db` inside a Docker named volume (`spherebreak_data`). This volume survives container restarts, image rebuilds, and stack redeployments.
+- Build the image on the Docker host that Portainer will use:
 
-**What is persisted** (in the named volume):
-- User accounts and display names
-- Leaderboard stats (rating, wins, losses, win rate, best scores, best combo, best streak, fastest break)
-- Match records and participants
-- Replay event logs
+```bash
+docker compose build
+```
 
-**What is NOT persisted** (in-memory only):
-- Active match state (boards, current scores, timers, player sockets)
-- Quick queue state
-- CPU fallback timers
+- In Portainer, go to **Stacks** → **Add stack**, paste the compose file, and deploy it.
 
-Any match that is in progress when the container stops will be lost. Players can start a new match after a redeploy. Completed ranked matches are already written to the database and are safe.
-
-### First-time Portainer stack deployment
-
-**Option A — local image (simplest):**
-
-1. Build the image on the same Docker host where Portainer runs:
-   ```bash
-   docker compose build
-   ```
-   This creates and tags `spherebreak:latest` locally.
-
-2. In Portainer, go to **Stacks → Add stack**, paste the contents of `docker-compose.yml`, and click **Deploy the stack**.
-
-**Option B — registry-based (recommended for teams):**
-
-1. Build, tag, and push to a container registry:
-   ```bash
-   docker compose build
-   docker tag spherebreak:latest yourregistry/spherebreak:v1.0.0
-   docker push yourregistry/spherebreak:v1.0.0
-   ```
-
-2. Update the `image:` field in `docker-compose.yml` to `yourregistry/spherebreak:v1.0.0`.
-
-3. In Portainer, go to **Stacks → Add stack**, paste the updated `docker-compose.yml`, and click **Deploy the stack**. Portainer will pull the image from the registry.
-
-**Option C — Git repository:**
-
-Portainer can deploy directly from a Git repository (Business Edition). Point it at the repository URL and set the compose file path to `docker-compose.yml`.
-
-On first boot the entrypoint initialises the database schema automatically. The app is available on port `3000`.
+- If you deploy from a registry, tag and push the image first, then point the stack `image:` field at that tag.
 
 ### Updating the app
 
-1. Pull or checkout the new code on your Docker host.
+- Rebuild the image after pulling new code.
+- Tag and push a new image version if you deploy from a registry.
+- Open the stack in Portainer and choose **Update the stack**.
 
-2. Rebuild the image:
-   ```bash
-   docker compose build
-   # Optionally tag and push to a registry:
-   # docker tag spherebreak:latest yourregistry/spherebreak:v1.2.3
-   # docker push yourregistry/spherebreak:v1.2.3
-   ```
-
-3. In Portainer, open the stack and click **Update the stack**.
-
-The named volume is untouched during the update. The entrypoint re-runs `prisma db push` on startup to apply any schema changes safely.
-
-> **Active games**: any match in progress at deploy time will be interrupted. Players will be disconnected and must start a new match. Completed games are safe in the database.
+The named volume is left untouched during updates, so persisted leaderboard data remains available.
 
 ### Backing up the database
 
 ```bash
-docker run --rm -v spherebreak_data:/data -v $(pwd):/backup alpine \
+docker run --rm -v spherebreak-data:/data -v $(pwd):/backup alpine \
   tar czf /backup/spherebreak_backup_$(date +%Y%m%d).tar.gz /data
 ```
 
 Restore:
 
 ```bash
-docker run --rm -v spherebreak_data:/data -v $(pwd):/backup alpine \
+docker run --rm -v spherebreak-data:/data -v $(pwd):/backup alpine \
   tar xzf /backup/spherebreak_backup_YYYYMMDD.tar.gz -C /
 ```
 
-## Architecture Diagram
+## Testing
 
-```mermaid
-flowchart LR
-    Client[Game Client] --> Socket[Realtime Gateway Socket.IO]
-    Socket --> Match[Match Engine]
-    Match --> Rules[Rules Engine]
-    Match --> Replay[Replay Service]
-    Match --> Store[(Prisma Database)]
-    Store --> Leaderboard[Leaderboard Service]
-    Client --> Api[HTTP API]
-    Api --> Store
-```
-
-## Multiplayer Sequence
-
-```mermaid
-sequenceDiagram
-    participant C1 as Player A Client
-    participant C2 as Player B Client
-    participant S as Realtime Server
-    participant M as Match Engine
-
-    C1->>S: CREATE_MATCH
-    C2->>S: JOIN_MATCH(code)
-    C1->>S: TOGGLE_READY(true)
-    C2->>S: TOGGLE_READY(true)
-    S->>M: start countdown
-    M-->>C1: GAME_STATE_UPDATE(starting)
-    M-->>C2: GAME_STATE_UPDATE(starting)
-    S->>M: activate match
-    C1->>S: SUBMIT_MOVE(selectedTokenIds, nonce, boardVersion)
-    S->>M: validate + apply move
-    M-->>C1: GAME_STATE_UPDATE(active)
-    M-->>C2: GAME_STATE_UPDATE(active)
-```
-
-## Move Validation Flow
-
-```mermaid
-flowchart TD
-    A[Client sends move] --> B[Validate payload shape]
-    B --> C[Validate active match and turn]
-    C --> D[Validate nonce and rate limit]
-    D --> E[Validate board version]
-    E --> F[Validate token ids and required inner token]
-    F --> G{sum is multiple of target?}
-    G -- no --> H[Reject move and flag if suspicious]
-    G -- yes --> I[Apply score combo streak quota]
-    I --> J[Mutate board and advance turn]
-    J --> K[Broadcast authoritative state]
-```
-
-## Leaderboard Update Flow
+Run the main checks:
 
 ```mermaid
 flowchart TD
@@ -402,51 +330,41 @@ flowchart TD
 Rank DTOs are attached to leaderboard rows, profile responses, open lobby payloads, and live/public player state. Clients render them but never author them.
 
 ## CPU Fallback Lifecycle
-
-When a multiplayer match has one human and no bot after creation, the server starts a 60-second timer. If no second human joins, a CPU opponent is automatically added.
-
-```mermaid
-flowchart TD
-    A[Match created with one human] --> B[Server starts 60-second fallback timer]
-    B --> C{Human joins before 60 seconds?}
-    C -- yes --> D[Cancel CPU fallback timer]
-    D --> E[Ready and countdown flow]
-    C -- no --> F[Server injects CPU player with generated username]
-    F --> G[CPU marked ready, countdown starts]
-    G --> E
-    E --> H[Active match]
-    H --> I[CPU uses same server move validation path]
-    I --> J[Match completed]
-    J --> K{Ranked and server-completed?}
-    K -- yes --> L[Persist CPU as bot user, update leaderboard]
-    K -- no --> M[Skip ranked leaderboard update]
+```bash
+npm test --prefix server
+npm test --prefix client -- --watch=false
+npm run build --prefix client
 ```
 
-## Anti-Cheat Assumptions
+Main server test coverage includes rules engine, match engine, anti-cheat, bots, lobby flow, and leaderboard updates.
 
-- The server is the only trusted authority for RNG, scoring, timing, and winner determination.
-- Clients receive authoritative state via GAME_STATE_UPDATE and must not act on self-reported score.
-- Move nonces are per-player-per-match and expire after 300 entries to prevent replay attacks.
-- Rate limiting is set to 30 move events per 4-second window per player.
-- Stale board version submissions are flagged as suspicious.
-- Disconnect abuse (more than 2 rapid disconnects during an active match) is flagged.
+## Architecture
 
-## Known Limitations
+```mermaid
+flowchart LR
+  Client[React Client] --> Socket[Socket.IO Gateway]
+  Socket --> Lobby[Lobby Service]
+  Lobby --> Engine[Match and Rules Engine]
+  Engine --> Replay[Replay Logging]
+  Engine --> DB[(Prisma + SQLite)]
+  Client --> API[HTTP API]
+  API --> DB
+```
 
-- Quick queue is a simple two-player pairing. No persistent queue or ranked matchmaking rating bracket.
-- Weekly leaderboard computes from MatchParticipant records. Participants must have at least one ranked match in the last 7 days to appear.
-- The replay event log is capped at 500 events per match in memory.
-- No end-to-end browser test framework is included. UI playtesting is manual.
+## Security Notes
 
+- Server is authoritative for scoring, timing, move validity, and outcomes
+- Rate limiting and nonce checks are enforced server-side
+- Stale board versions and suspicious activity are flagged
+- Do not expose secrets in client-side code or public configs
 
+## Troubleshooting
 
-See `docs/assets.md`.
+- If the server warns about missing `DATABASE_URL`, create `server/.env`
+- If the client cannot connect in development, verify `REACT_APP_SERVER_URL`
+- If data is lost in Docker, mount a volume and make sure `DATABASE_URL` points to that mounted path
 
-All included visuals are original SVG assets created for this repository.
+## Additional Docs
 
-## Deployment Notes
-
-- Backend serves built frontend from `client/build`.
-- Set `DATABASE_URL` for production database target.
-- Keep Socket.IO behind HTTPS-capable reverse proxy.
-- Do not expose debug-only internals publicly.
+- Visual assets: `docs/assets.md`
+- Marketing static files are served from `marketing/` at `/marketing`
