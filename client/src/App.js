@@ -11,6 +11,7 @@ import Results from './screens/Results';
 import Leaderboard from './screens/Leaderboard';
 import Profile from './screens/Profile';
 import Settings from './screens/Settings';
+import GameLogo from './components/ui/GameLogo';
 import {
   DEFAULT_MATCH_SETTINGS,
   buildMovePreview,
@@ -223,7 +224,7 @@ export default function App() {
     <div className="app-shell">
       <div className="bg-stars" aria-hidden="true" />
       <header className="top-bar">
-        <h1>Celestial Break</h1>
+        <GameLogo />
         <nav aria-label="Main navigation">
           <button type="button" className="nav-btn" onClick={() => setScreen('main')}>Menu</button>
           <button type="button" className="nav-btn" onClick={() => setScreen('tutorial')}>Tutorial</button>

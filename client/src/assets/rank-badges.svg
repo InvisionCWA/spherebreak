@@ -1,6 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="768" height="192" viewBox="0 0 768 192" fill="none">
-  <rect width="192" height="192" rx="24" fill="#4058B8"/><circle cx="96" cy="96" r="48" fill="#8CA3FF"/>
-  <rect x="192" width="192" height="192" rx="24" fill="#2C90C9"/><circle cx="288" cy="96" r="48" fill="#76D4FF"/>
-  <rect x="384" width="192" height="192" rx="24" fill="#6F4ED5"/><circle cx="480" cy="96" r="48" fill="#BEA9FF"/>
-  <rect x="576" width="192" height="192" rx="24" fill="#C87435"/><circle cx="672" cy="96" r="48" fill="#FFD2AF"/>
+  <!-- Comet rank (rank 1 - beginner, blue) -->
+  <rect width="192" height="192" rx="24" fill="#20316A"/>
+  <circle cx="96" cy="96" r="42" fill="#3a5abf" fill-opacity="0.5"/>
+  <ellipse cx="96" cy="88" rx="18" ry="18" fill="#8CA3FF"/>
+  <ellipse cx="96" cy="115" rx="8" ry="22" fill="#8CA3FF" fill-opacity="0.55" transform="rotate(-20 96 115)"/>
+  <circle cx="96" cy="86" r="8" fill="#c8d6ff"/>
+
+  <!-- Lumen rank (rank 2 - cyan) -->
+  <rect x="192" width="192" height="192" rx="24" fill="#0d3554"/>
+  <circle cx="288" cy="96" r="42" fill="#1560a0" fill-opacity="0.5"/>
+  <polygon points="288,62 300,88 328,90 307,109 314,137 288,122 262,137 269,109 248,90 276,88" fill="#76D4FF" fill-opacity="0.85"/>
+  <circle cx="288" cy="96" r="10" fill="#c5f3ff"/>
+
+  <!-- Nova rank (rank 3 - violet) -->
+  <rect x="384" width="192" height="192" rx="24" fill="#2a1060"/>
+  <circle cx="480" cy="96" r="42" fill="#5a2db0" fill-opacity="0.5"/>
+  <circle cx="480" cy="96" r="30" fill="none" stroke="#BEA9FF" stroke-width="3"/>
+  <circle cx="480" cy="96" r="16" fill="#9b6dff" fill-opacity="0.8"/>
+  <circle cx="480" cy="66" r="6" fill="#e0d0ff"/>
+  <circle cx="480" cy="126" r="6" fill="#e0d0ff"/>
+  <circle cx="450" cy="96" r="6" fill="#e0d0ff"/>
+  <circle cx="510" cy="96" r="6" fill="#e0d0ff"/>
+
+  <!-- Astral rank (rank 4 - gold, top) -->
+  <rect x="576" width="192" height="192" rx="24" fill="#3d2000"/>
+  <circle cx="672" cy="96" r="42" fill="#9d5300" fill-opacity="0.5"/>
+  <polygon points="672,58 683,87 714,87 690,105 699,134 672,116 645,134 654,105 630,87 661,87" fill="#FFD2AF" fill-opacity="0.90"/>
+  <polygon points="672,68 680,90 704,90 684,103 692,126 672,113 652,126 660,103 640,90 664,90" fill="#ffd166"/>
+  <circle cx="672" cy="96" r="10" fill="#fff5d0"/>
 </svg>
