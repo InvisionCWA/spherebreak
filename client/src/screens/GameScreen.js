@@ -17,6 +17,38 @@ function useCountdown(endsAt) {
   return secondsLeft;
 }
 
+function ComboExplanation({ lastMove, comboRuleType }) {
+  if (!lastMove) return null;
+  const { combo, comboIncreased, comboContinued, tokenCount, achievedMultiple } = lastMove;
+
+  if (combo <= 0) return null;
+
+  let detail = '';
+  if (comboRuleType === 'achieved-multiple') {
+    if (comboContinued && comboIncreased) {
+      detail = `Chain maintained — same multiple (×${achievedMultiple})`;
+    } else if (!comboContinued) {
+      detail = `Break Chain started (×${achievedMultiple})`;
+    } else {
+      detail = `Break Chain reset — multiple changed (×${achievedMultiple})`;
+    }
+  } else {
+    if (comboContinued && comboIncreased) {
+      detail = `Chain maintained — same token count (${tokenCount})`;
+    } else if (!comboContinued) {
+      detail = `Break Chain started (${tokenCount} token${tokenCount !== 1 ? 's' : ''})`;
+    } else {
+      detail = `Chain reset — token count changed (${tokenCount})`;
+    }
+  }
+
+  return (
+    <p className="combo-explanation" aria-live="polite">
+      {detail}
+    </p>
+  );
+}
+
 export default function GameScreen({
   state,
   selfId,
@@ -35,6 +67,9 @@ export default function GameScreen({
   const showHints = state.settings.beginnerHints !== false;
   const timerSeconds = useCountdown(state.turnEndsAt || Date.now());
   const timerUrgent = timerSeconds <= 5;
+  const turnsLeft = state.turnsLeft ?? Math.max(0, state.settings.turnLimit - state.turnCount + 1);
+  const turnsLowWarn = turnsLeft <= 3 && turnsLeft > 0;
+  const comboRuleType = state.settings.comboRules?.comboRuleType || 'token-count';
 
   const selectionOrder = Object.fromEntries(selected.map((id, index) => [id, index + 1]));
   const activePlayer = state.players.find((p) => p.id === activeId);
@@ -52,15 +87,41 @@ export default function GameScreen({
               <div className="score-block">
                 <span>{player.score} pts</span>
                 <small>quota {player.quotaProgress}/{state.settings.quotaToWin}</small>
+                {player.combo > 0 && <small>combo {player.combo}</small>}
               </div>
             </li>
           ))}
         </ul>
+        <p
+          className={turnsLowWarn ? 'turns-left-warning' : 'turns-left'}
+          aria-live="polite"
+          aria-label={`${turnsLeft} turns remaining`}
+        >
+          Turns left: {turnsLeft}
+          {turnsLowWarn && ' ⚠'}
+        </p>
       </CelestialPanel>
 
       <CelestialPanel title="Board" subtitle={`Target ${state.board.targetNumber} | Board v${state.board.version}`} className="board-panel">
         <p className="target-help">Pick tokens that add up to a positive multiple of {state.board.targetNumber}.</p>
         <div className="core-orb" aria-label={`Target number ${state.board.targetNumber}`}>{state.board.targetNumber}</div>
+
+        {showHints && (
+          <div className="multiples-preview" aria-label="Possible valid totals">
+            <small>
+              Valid totals:&nbsp;
+              {movePreview.nextMultiples.map((m, i) => (
+                <span
+                  key={m}
+                  className={movePreview.isValid && m === movePreview.sum ? 'multiple-current' : 'multiple-upcoming'}
+                >
+                  {i > 0 ? ', ' : ''}{m}
+                </span>
+              ))}
+            </small>
+          </div>
+        )}
+
         <h4>Inner Tokens <small>(at least one required)</small></h4>
         <div className="token-row">
           {state.board.innerTokens.map((token) => (
@@ -94,13 +155,18 @@ export default function GameScreen({
         <p className={timerUrgent ? 'timer-urgent' : ''} aria-live="polite" aria-label={`Time remaining: ${timerSeconds} seconds`}>
           Time: {timerSeconds}s
         </p>
-        <p>Selected tokens: {selected.length}</p>
+        <p>Tokens used: {selected.length}</p>
         {showHints && <p>Selected sum: {movePreview.sum}</p>}
-        {showHints && <p>Includes inner token: {movePreview.includesInner ? 'Yes' : 'No'}</p>}
-        {showHints && movePreview.sum > 0 && !movePreview.isValid && (
-          <p>Nearest multiple: {movePreview.nearestMultiple || 0}</p>
+        {showHints && movePreview.isValid && (
+          <p className="valid-break-label" aria-live="polite">
+            Target ×{movePreview.achievedMultiple} = {movePreview.sum} ✓
+          </p>
         )}
-        <p aria-live="polite">Selection: {movePreview.isValid ? 'Valid Break' : (selected.length > 0 ? 'Not valid yet' : 'No tokens selected')}</p>
+        {showHints && <p>Includes inner token: {movePreview.includesInner ? 'Yes' : <span className="hint-warning">No — required</span>}</p>}
+        {showHints && movePreview.sum > 0 && !movePreview.isValid && (
+          <p>Nearest multiple: {movePreview.nearestMultiple}</p>
+        )}
+        <p aria-live="polite">Selection: {movePreview.isValid ? '✓ Valid Break' : (selected.length > 0 ? 'Not valid yet' : 'No tokens selected')}</p>
 
         <button
           type="button"
@@ -123,11 +189,14 @@ export default function GameScreen({
         {lastMove && (
           <div className="result-box" aria-label="Last move result">
             <p>Last: {state.players.find((p) => p.id === lastMove.playerId)?.displayName || 'player'}</p>
-            <p>sum {lastMove.sum}, +{lastMove.scoreGain} pts</p>
-            {lastMove.combo > 0 && <p>combo {lastMove.combo} / streak {lastMove.streak}</p>}
+            <p>sum {lastMove.sum}{lastMove.achievedMultiple ? ` (×${lastMove.achievedMultiple})` : ''}, +{lastMove.scoreGain} pts</p>
+            {lastMove.tokenCount !== null && lastMove.tokenCount !== undefined && <p>Tokens used: {lastMove.tokenCount}</p>}
+            {lastMove.combo > 0 && <p>Combo {lastMove.combo} / Streak {lastMove.streak}</p>}
+            <ComboExplanation lastMove={lastMove} comboRuleType={comboRuleType} />
           </div>
         )}
         <p>Your score: {self?.score || 0} pts</p>
+        <p>Quota: {self?.quotaProgress || 0} / {state.settings.quotaToWin}</p>
         {self && <p>Combo: {self.combo} / Streak: {self.streak}</p>}
       </CelestialPanel>
     </div>
