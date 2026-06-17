@@ -1,5 +1,16 @@
 'use strict';
 
+// Validate required environment variables before anything else initialises.
+const REQUIRED_ENV = ['DATABASE_URL'];
+const missingEnv = REQUIRED_ENV.filter((key) => !process.env[key]);
+if (missingEnv.length > 0) {
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[server] Warning: missing environment variable(s): ${missingEnv.join(', ')}. ` +
+    'Copy server/.env.example to server/.env and set the required values.',
+  );
+}
+
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -58,6 +69,15 @@ app.get('/api/profile/:id', async (req, res) => {
 app.use(express.static(path.join(__dirname, '..', 'client', 'build')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'client', 'build', 'index.html'));
+});
+
+// Generic error handler — must have 4 parameters so Express recognises it as an
+// error-handling middleware and never expose internal stack traces to clients.
+// eslint-disable-next-line no-unused-vars
+app.use((error, _req, res, _next) => {
+  // eslint-disable-next-line no-console
+  console.error(error);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 function emitState(match) {

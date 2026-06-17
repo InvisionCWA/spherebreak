@@ -63,6 +63,10 @@ function bootstrapMatch(lobby, matchIndex) {
   return { match, id1, id2 };
 }
 
+function makeNonce() {
+  return `ld-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 /**
  * Attempt to play one valid move for whoever's turn it is, bypassing anti-cheat.
  * Returns the result object if a valid selection was found, or null otherwise.
@@ -84,7 +88,7 @@ function playOneMove(lobby, match) {
       return lobby.processMoveOnMatch({
         match,
         playerId: current.id,
-        move: { selectedTokenIds: [inner.id], nonce: `ld-${Date.now()}-${Math.random()}`, boardVersion: board.version },
+        move: { selectedTokenIds: [inner.id], nonce: makeNonce(), boardVersion: board.version },
         enforceAntiCheat: false,
       });
     }
@@ -96,7 +100,7 @@ function playOneMove(lobby, match) {
         return lobby.processMoveOnMatch({
           match,
           playerId: current.id,
-          move: { selectedTokenIds: [inner.id, o1.id], nonce: `ld-${Date.now()}-${Math.random()}`, boardVersion: board.version },
+          move: { selectedTokenIds: [inner.id, o1.id], nonce: makeNonce(), boardVersion: board.version },
           enforceAntiCheat: false,
         });
       }
@@ -109,7 +113,7 @@ function playOneMove(lobby, match) {
           return lobby.processMoveOnMatch({
             match,
             playerId: current.id,
-            move: { selectedTokenIds: [inner.id, o1.id, o2.id], nonce: `ld-${Date.now()}-${Math.random()}`, boardVersion: board.version },
+            move: { selectedTokenIds: [inner.id, o1.id, o2.id], nonce: makeNonce(), boardVersion: board.version },
             enforceAntiCheat: false,
           });
         }

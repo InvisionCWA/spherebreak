@@ -38,6 +38,7 @@ export default function App() {
   const [selectedTokenIds, setSelectedTokenIds] = useState([]);
   const [moveError, setMoveError] = useState('');
   const [lastMove, setLastMove] = useState(null);
+  const [isSubmittingMove, setIsSubmittingMove] = useState(false);
   const [leaderboard, setLeaderboard] = useState([]);
   const [weeklyLeaderboard, setWeeklyLeaderboard] = useState([]);
   const [profile, setProfile] = useState(null);
@@ -72,6 +73,7 @@ export default function App() {
       setGameState(state);
       setSelectedTokenIds([]);
       setMoveError('');
+      setIsSubmittingMove(false);
 
       if (state.status === 'waiting' || state.status === 'starting') {
         setScreen('matchroom');
@@ -84,6 +86,7 @@ export default function App() {
 
     client.on('MOVE_ACCEPTED', ({ moveResult }) => {
       setLastMove(moveResult);
+      setIsSubmittingMove(false);
     });
 
     client.on('REQUEST_ERROR', ({ error }) => {
@@ -103,6 +106,7 @@ export default function App() {
     const handleMoveRejected = ({ reason, preview }) => {
       const showHints = settings.beginnerHints ?? true;
       setMoveError(preview && showHints ? `${reason}. Nearest multiple: ${preview.nearestMultiple}` : reason);
+      setIsSubmittingMove(false);
     };
     socket.on('MOVE_REJECTED', handleMoveRejected);
     return () => {
@@ -176,16 +180,22 @@ export default function App() {
   }
 
   function submitMove() {
-    if (!socket || !gameState || !selectedTokenIds.length) return;
+    if (!socket || !gameState || !selectedTokenIds.length || isSubmittingMove) return;
     if (!movePreview.includesInner) return;
 
     const nonce = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    setIsSubmittingMove(true);
 
     socket.emit('SUBMIT_MOVE', {
       selectedTokenIds,
       nonce,
       boardVersion: gameState.board.version,
     });
+  }
+
+  function clearSelection() {
+    setSelectedTokenIds([]);
+    setMoveError('');
   }
 
   function toggleToken(tokenId) {
@@ -203,6 +213,7 @@ export default function App() {
     setScreen('main');
     setGameState(null);
     setSelectedTokenIds([]);
+    setIsSubmittingMove(false);
     setLastMove(null);
   }
 
@@ -240,8 +251,10 @@ export default function App() {
             onSelect={toggleToken}
             movePreview={movePreview}
             onSubmit={submitMove}
+            onClearSelection={clearSelection}
             moveError={moveError}
             lastMove={lastMove}
+            isSubmittingMove={isSubmittingMove}
           />
         )}
         {screen === 'results' && gameState && <Results state={gameState} onRematch={() => socket?.emit('REQUEST_REMATCH')} onExit={backToMain} />}

@@ -36,6 +36,27 @@ class AntiCheat {
       timestamp: Date.now(),
     });
   }
+
+  /**
+   * Release all anti-cheat state for a finished match.
+   * Removes nonce sets for every player in the match and evicts any
+   * now-empty rate-limit windows belonging to those players.
+   */
+  cleanupMatch(matchId, playerIds) {
+    const now = Date.now();
+    for (const playerId of playerIds) {
+      this.nonces.delete(`${matchId}:${playerId}`);
+      for (const [key, timestamps] of this.eventWindows) {
+        if (!key.startsWith(`${playerId}:`)) continue;
+        const fresh = timestamps.filter((t) => now - t <= 60_000);
+        if (fresh.length === 0) {
+          this.eventWindows.delete(key);
+        } else {
+          this.eventWindows.set(key, fresh);
+        }
+      }
+    }
+  }
 }
 
 module.exports = { AntiCheat };
