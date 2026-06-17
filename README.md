@@ -46,18 +46,18 @@ This repository contains only original game content and original assets.
 
 - Node.js 20+
 - npm 10+
-- Docker (optional)
+- Docker, if you want to use the container workflow
 
-## Quick Start (Local Development)
+## Quick Start
 
-1. Install dependencies
+Install dependencies:
 
 ```bash
 npm install --prefix server
 npm install --prefix client
 ```
 
-1. Create environment file at `server/.env`
+Create `server/.env`:
 
 ```env
 DATABASE_URL="file:./prisma/dev.db"
@@ -65,7 +65,7 @@ PORT=3000
 NODE_ENV=development
 ```
 
-1. Initialize database
+Initialize the database:
 
 ```bash
 npm run db:generate --prefix server
@@ -73,49 +73,27 @@ npm run db:push --prefix server
 npm run db:seed --prefix server
 ```
 
-1. Start backend
+Start the backend:
 
 ```bash
 npm run dev --prefix server
 ```
 
-1. Start frontend (new terminal)
+Start the frontend in another terminal:
 
 ```bash
 npm start --prefix client
 ```
 
-By default:
-
-- Frontend: <http://localhost:3000> (if served by backend build) or <http://localhost:3001> (CRA dev server)
-- Backend API: <http://localhost:3000/api>
-
-If you run the client dev server on port 3001, set `REACT_APP_SERVER_URL=http://localhost:3000` in the client environment.
-
-## Scripts
-
-### Server scripts
-
-- `npm run dev --prefix server`: start server with nodemon
-- `npm start --prefix server`: start server in normal mode
-- `npm test --prefix server`: run backend tests
-- `npm run db:generate --prefix server`: generate Prisma client
-- `npm run db:push --prefix server`: apply Prisma schema to database
-- `npm run db:seed --prefix server`: seed initial data
-
-### Client scripts
-
-- `npm start --prefix client`: run CRA dev server
-- `npm run build --prefix client`: build production client
-- `npm test --prefix client`: run frontend tests
+If you want the client dev server to talk to the backend on a different port, set `REACT_APP_SERVER_URL=http://localhost:3000` before starting the client.
 
 ## Gameplay Rules
 
 - Token values range from 1 to 9
-- The target number range is configurable (default 1 to 9)
+- The target number range is configurable, with 1 to 9 as the default range
 - A valid move must include at least one inner token
-- Selected token values must sum to a positive multiple of target
-- Match ends when quota is reached or turn limit is hit
+- Selected token values must sum to a positive multiple of the target
+- Match ends when quota is reached or the turn limit is hit
 
 ## Match Lifecycle
 
@@ -127,7 +105,7 @@ States:
 - `completed`
 - `abandoned`
 
-Key behavior:
+Behavior:
 
 - Reconnect support by persisted player id
 - Ready-check and countdown before match start
@@ -137,22 +115,23 @@ Key behavior:
 
 Persisted data includes:
 
-- Users and leaderboard stats
-- Match and participant records
-- Replay events
+- Users and display names
+- Leaderboard stats, including rating, wins, losses, win rate, best scores, best combo, best streak, and fastest Break
+- Match records and participants
+- Replay event logs
 
 Only server-completed ranked matches update ranked leaderboard values.
 
+Live in-progress match state is in memory and is not durable across server restarts.
+
 ### Where scores are stored
 
-- Local development: SQLite file from `DATABASE_URL` (default `server/prisma/dev.db`)
-- Container deployment: wherever `DATABASE_URL` points; use a mounted volume for persistence
-
-Important: live in-progress match state is in memory and is not durable across server restarts.
+- Local development: SQLite file from `DATABASE_URL`, usually `server/prisma/dev.db`
+- Container deployment: whatever path `DATABASE_URL` points to; use a mounted volume for persistence
 
 ## Docker
 
-### Run with current compose file
+Run with the current compose file:
 
 ```bash
 docker compose up --build
@@ -160,33 +139,67 @@ docker compose up --build
 
 The included compose file is minimal and exposes port 3000.
 
-### Recommended persistent setup (Portainer/production-like)
-
-Use a volume and explicit database path, for example:
+Recommended persistent setup for Portainer or other production-like deployments:
 
 ```yaml
 services:
-    spherebreak:
-        image: your-registry/spherebreak:latest
-        ports:
-            - "3000:3000"
-        environment:
-            - NODE_ENV=production
-            - PORT=3000
-            - DATABASE_URL=file:/data/dev.db
-        volumes:
-            - spherebreak-data:/data
-        restart: unless-stopped
+  spherebreak:
+    image: your-registry/spherebreak:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=file:/data/dev.db
+    volumes:
+      - spherebreak-data:/data
+    restart: unless-stopped
 
 volumes:
-    spherebreak-data:
+  spherebreak-data:
 ```
 
-This ensures leaderboard and match history survive container updates.
+This keeps leaderboard and match history data across image rebuilds and stack updates.
+
+## Portainer Deployment
+
+### First-time deployment
+
+- Build the image on the Docker host that Portainer will use:
+
+```bash
+docker compose build
+```
+
+- In Portainer, go to **Stacks** → **Add stack**, paste the compose file, and deploy it.
+
+- If you deploy from a registry, tag and push the image first, then point the stack `image:` field at that tag.
+
+### Updating the app
+
+- Rebuild the image after pulling new code.
+- Tag and push a new image version if you deploy from a registry.
+- Open the stack in Portainer and choose **Update the stack**.
+
+The named volume is left untouched during updates, so persisted leaderboard data remains available.
+
+### Backing up the database
+
+```bash
+docker run --rm -v spherebreak-data:/data -v $(pwd):/backup alpine \
+  tar czf /backup/spherebreak_backup_$(date +%Y%m%d).tar.gz /data
+```
+
+Restore:
+
+```bash
+docker run --rm -v spherebreak-data:/data -v $(pwd):/backup alpine \
+  tar xzf /backup/spherebreak_backup_YYYYMMDD.tar.gz -C /
+```
 
 ## Testing
 
-Run all major checks:
+Run the main checks:
 
 ```bash
 npm test --prefix server
@@ -200,13 +213,13 @@ Main server test coverage includes rules engine, match engine, anti-cheat, bots,
 
 ```mermaid
 flowchart LR
-        Client[React Client] --> Socket[Socket.IO Gateway]
-        Socket --> Lobby[Lobby Service]
-        Lobby --> Engine[Match and Rules Engine]
-        Engine --> Replay[Replay Logging]
-        Engine --> DB[(Prisma + SQLite)]
-        Client --> API[HTTP API]
-        API --> DB
+  Client[React Client] --> Socket[Socket.IO Gateway]
+  Socket --> Lobby[Lobby Service]
+  Lobby --> Engine[Match and Rules Engine]
+  Engine --> Replay[Replay Logging]
+  Engine --> DB[(Prisma + SQLite)]
+  Client --> API[HTTP API]
+  API --> DB
 ```
 
 ## Security Notes
@@ -218,9 +231,9 @@ flowchart LR
 
 ## Troubleshooting
 
-- If server warns about missing `DATABASE_URL`, create `server/.env`
-- If client cannot connect in development, verify `REACT_APP_SERVER_URL`
-- If data is lost in Docker, mount a volume and set `DATABASE_URL` to that path
+- If the server warns about missing `DATABASE_URL`, create `server/.env`
+- If the client cannot connect in development, verify `REACT_APP_SERVER_URL`
+- If data is lost in Docker, mount a volume and make sure `DATABASE_URL` points to that mounted path
 
 ## Additional Docs
 
