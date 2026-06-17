@@ -102,6 +102,44 @@ describe('lobby service', () => {
     expect(match.settings.ranked).toBe(false);
   });
 
+  test('reconnect does not create duplicate player entry', () => {
+    const lobby = new LobbyService();
+    const p1 = lobby.createOrResumeSession({ playerId: 'p1', displayName: 'One', socketId: 's1' });
+    const p2 = lobby.createOrResumeSession({ playerId: 'p2', displayName: 'Two', socketId: 's2' });
+
+    const match = lobby.createMatch({ hostPlayerId: p1.playerId, displayName: 'One', settings: {}, mode: 'casual' });
+    lobby.joinMatch({ code: match.code, playerId: p2.playerId, displayName: 'Two', socketId: 's2' });
+
+    lobby.disconnect('s1');
+    lobby.reconnectPlayer({ playerId: p1.playerId, socketId: 's1b' });
+
+    expect(match.players.size).toBe(2);
+    const p1Player = match.players.get(p1.playerId);
+    expect(p1Player.connected).toBe(true);
+    expect(p1Player.socketId).toBe('s1b');
+  });
+
+  test('rematch creates a new match with fresh state', () => {
+    const lobby = new LobbyService();
+    const p1 = lobby.createOrResumeSession({ playerId: 'p1', displayName: 'One', socketId: 's1' });
+    const p2 = lobby.createOrResumeSession({ playerId: 'p2', displayName: 'Two', socketId: 's2' });
+
+    const match = lobby.createMatch({ hostPlayerId: p1.playerId, displayName: 'One', settings: {}, mode: 'casual' });
+    lobby.joinMatch({ code: match.code, playerId: p2.playerId, displayName: 'Two', socketId: 's2' });
+    match.status = 'completed';
+
+    lobby.requestRematch(p1.playerId);
+    const rematch = lobby.requestRematch(p2.playerId);
+
+    expect(rematch).toBeTruthy();
+    expect(rematch.id).not.toBe(match.id);
+    expect(rematch.status).toBe('waiting');
+    expect(rematch.turnCount).toBe(0);
+    // rematch replay starts fresh: only player_joined events, no old match events
+    const types = rematch.replay.map((e) => e.type);
+    expect(types.every((t) => t === 'player_joined')).toBe(true);
+  });
+
   test('waiting multiplayer match gets a CPU fallback after 60 seconds', () => {
     jest.useFakeTimers();
     const lobby = new LobbyService({ random: () => 0.2 });

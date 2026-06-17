@@ -140,19 +140,19 @@ Rules:
 ### 1) Install dependencies
 
 ```bash
-cd /home/runner/work/spherebreak/spherebreak/client
+cd client
 npm install
 
-cd /home/runner/work/spherebreak/spherebreak/server
+cd ../server
 npm install
 ```
 
 ### 2) Configure environment
 
-Create `/home/runner/work/spherebreak/spherebreak/server/.env`:
+Create `server/.env`:
 
 ```env
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="file:./prisma/dev.db"
 PORT=3000
 NODE_ENV=development
 ```
@@ -160,7 +160,7 @@ NODE_ENV=development
 ### 3) Prepare database
 
 ```bash
-cd /home/runner/work/spherebreak/spherebreak/server
+cd server
 npm run db:generate
 npm run db:push
 npm run db:seed
@@ -171,14 +171,14 @@ npm run db:seed
 Start backend:
 
 ```bash
-cd /home/runner/work/spherebreak/spherebreak/server
+cd server
 npm run dev
 ```
 
 Start frontend in another terminal:
 
 ```bash
-cd /home/runner/work/spherebreak/spherebreak/client
+cd client
 PORT=3001 REACT_APP_SERVER_URL=http://localhost:3000 npm start
 ```
 
@@ -189,23 +189,35 @@ Open `http://localhost:3001`.
 Server tests:
 
 ```bash
-cd /home/runner/work/spherebreak/spherebreak/server
+cd server
 npm test
 ```
 
 Client tests:
 
 ```bash
-cd /home/runner/work/spherebreak/spherebreak/client
+cd client
 CI=true npm test -- --watch=false
 ```
 
 Client build:
 
 ```bash
-cd /home/runner/work/spherebreak/spherebreak/client
+cd client
 npm run build
 ```
+
+### Test coverage
+
+Server test suites:
+
+- `gameEngine.test.js` - rules engine: board creation, move validation, board mutation, valid move enumeration, scoring
+- `__tests__/rulesEngine.test.js` - validateMoveInput edge cases, calculateSelection, createBoard, applyBoardMutation, enumerateValidMoves
+- `__tests__/matchEngine.test.js` - valid/invalid move handling, score/combo/streak/quota updates, match completion (quota and turn limit), winner determination, turn timeouts, addPlayer full/reconnect behaviour, getPublicState shape
+- `__tests__/antiCheat.test.js` - duplicate nonce rejection, rate limit flooding
+- `__tests__/botEngine.test.js` - bot move selection validity
+- `__tests__/lobbyService.test.js` - stale board rejection, inactive player rejection, duplicate nonce via lobby, CPU fallback timing, fallback cancellation, no-duplicate fallback, fallback lifecycle, bot turn pipeline, reconnect behaviour, reconnect no-duplicate, rematch fresh state, race condition
+- `__tests__/leaderboardService.test.js` - ranked match with CPU updates leaderboard, casual match does not, abandoned match does not
 
 ## Docker
 
@@ -279,7 +291,44 @@ flowchart TD
     F --> G[Persist replay events]
 ```
 
-## Asset Licensing
+## CPU Fallback Lifecycle
+
+When a multiplayer match has one human and no bot after creation, the server starts a 60-second timer. If no second human joins, a CPU opponent is automatically added.
+
+```mermaid
+flowchart TD
+    A[Match created with one human] --> B[Server starts 60-second fallback timer]
+    B --> C{Human joins before 60 seconds?}
+    C -- yes --> D[Cancel CPU fallback timer]
+    D --> E[Ready and countdown flow]
+    C -- no --> F[Server injects CPU player with generated username]
+    F --> G[CPU marked ready, countdown starts]
+    G --> E
+    E --> H[Active match]
+    H --> I[CPU uses same server move validation path]
+    I --> J[Match completed]
+    J --> K{Ranked and server-completed?}
+    K -- yes --> L[Persist CPU as bot user, update leaderboard]
+    K -- no --> M[Skip ranked leaderboard update]
+```
+
+## Anti-Cheat Assumptions
+
+- The server is the only trusted authority for RNG, scoring, timing, and winner determination.
+- Clients receive authoritative state via GAME_STATE_UPDATE and must not act on self-reported score.
+- Move nonces are per-player-per-match and expire after 300 entries to prevent replay attacks.
+- Rate limiting is set to 30 move events per 4-second window per player.
+- Stale board version submissions are flagged as suspicious.
+- Disconnect abuse (more than 2 rapid disconnects during an active match) is flagged.
+
+## Known Limitations
+
+- Quick queue is a simple two-player pairing. No persistent queue or ranked matchmaking rating bracket.
+- Weekly leaderboard computes from MatchParticipant records. Participants must have at least one ranked match in the last 7 days to appear.
+- The replay event log is capped at 500 events per match in memory.
+- No end-to-end browser test framework is included. UI playtesting is manual.
+
+
 
 See `/home/runner/work/spherebreak/spherebreak/docs/assets.md`.
 

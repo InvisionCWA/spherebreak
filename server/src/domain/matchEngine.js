@@ -33,13 +33,15 @@ function createMatch({ code, hostPlayer, settings, mode = 'casual', botDifficult
 
   addPlayer(match, hostPlayer);
   if (botDifficulty) {
+    const { generateBotHandle } = require('./botEngine');
     addPlayer(match, {
       id: `bot-${match.id}`,
-      displayName: `Bot ${botDifficulty}`,
+      displayName: generateBotHandle(),
       socketId: null,
       isBot: true,
       ready: true,
       connected: true,
+      botDifficulty,
     });
   }
 
@@ -47,14 +49,14 @@ function createMatch({ code, hostPlayer, settings, mode = 'casual', botDifficult
 }
 
 function addPlayer(match, { id, displayName, socketId, isBot = false, ready = false, connected = true, botDifficulty = null }) {
-  if (match.players.size >= match.settings.maxPlayers) {
-    throw new Error('Match full');
-  }
   if (match.players.has(id)) {
     const existing = match.players.get(id);
     existing.socketId = socketId || existing.socketId;
     existing.connected = connected;
     return existing;
+  }
+  if (match.players.size >= match.settings.maxPlayers) {
+    throw new Error('Match full');
   }
 
   const player = {
@@ -123,6 +125,7 @@ function getPublicState(match, viewerId = null) {
     turnCount: match.turnCount,
     currentTurnPlayerId: currentPlayer?.id || null,
     turnEndsAt: match.turnEndsAt,
+    countdownEndsAt: match.countdownEndsAt || null,
     board: match.board,
     winnerId: match.winnerId,
     players: Array.from(match.players.values()).map((player) => ({

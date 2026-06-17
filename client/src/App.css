@@ -149,6 +149,14 @@ body {
   background: transparent;
 }
 
+.primary-btn:disabled,
+.secondary-btn:disabled,
+.ghost-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .menu-grid {
   display: grid;
   gap: 10px;
@@ -341,3 +349,81 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* Keyboard focus */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Timer urgency */
+.timer-urgent {
+  color: #ffc3d2;
+  font-weight: 700;
+}
+
+/* Countdown text */
+.countdown-text {
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--primary);
+  margin-top: 12px;
+}
+
+/* Ready state labels */
+.ready-yes {
+  color: #7cf3ca;
+  font-weight: 600;
+}
+
+.ready-no {
+  color: var(--muted);
+}
+
+/* Winner highlight in results */
+.winner-row {
+  border-color: rgba(124, 243, 202, 0.7);
+  background: rgba(34, 82, 60, 0.35);
+}
+
+/* Ranked note */
+.ranked-note {
+  font-size: 0.85rem;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+
+/* Empty state */
+.empty-state {
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 8px 0;
+}
+
+@media (max-width: 480px) {
+  .orb-token {
+    min-height: 58px;
+    padding: 6px;
+  }
+
+  .orb-value {
+    font-size: 1.3rem;
+  }
+
+  .orb-zone {
+    display: none;
+  }
+
+  .game-layout .celestial-panel {
+    padding: 10px;
+  }
+
+  .core-orb {
+    width: 64px;
+    height: 64px;
+    font-size: 1.5rem;
+  }
+}
+

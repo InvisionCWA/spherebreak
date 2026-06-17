@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import './App.css';
 import Landing from './screens/Landing';
@@ -28,6 +28,8 @@ export default function App() {
     const existing = readSession();
     return existing || { playerId: null, displayName: 'GuestPilot' };
   });
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
 
   const [screen, setScreen] = useState('landing');
   const [settings, setSettings] = useState({ ...DEFAULT_MATCH_SETTINGS });
@@ -46,10 +48,8 @@ export default function App() {
     setSocket(client);
 
     client.on('connect', () => {
-      client.emit('CLIENT_HELLO', {
-        playerId: session.playerId,
-        displayName: session.displayName,
-      });
+      const { playerId, displayName } = sessionRef.current;
+      client.emit('CLIENT_HELLO', { playerId, displayName });
     });
 
     client.on('SESSION_READY', (payload) => {
@@ -87,18 +87,18 @@ export default function App() {
       setTimeout(() => setNotice(''), 2500);
     });
 
-    client.on('QUEUE_WAITING', () => setNotice('Queued for matchmaking.'));
+    client.on('QUEUE_WAITING', () => setNotice('Queued for matchmaking. Waiting for an opponent.'));
 
     return () => {
       client.disconnect();
     };
-  }, [session.playerId, session.displayName]);
+  }, []); // socket created once; CLIENT_HELLO re-sent on reconnect via 'connect' event
 
   useEffect(() => {
     if (!socket) return undefined;
     const handleMoveRejected = ({ reason, preview }) => {
       const showHints = settings.beginnerHints ?? true;
-      setMoveError(preview && showHints ? `${reason}. nearest multiple ${preview.nearestMultiple}` : reason);
+      setMoveError(preview && showHints ? `${reason}. Nearest multiple: ${preview.nearestMultiple}` : reason);
     };
     socket.on('MOVE_REJECTED', handleMoveRejected);
     return () => {
@@ -120,8 +120,8 @@ export default function App() {
   }
 
   async function loadProfile() {
-    if (!session.playerId) return;
-    const res = await fetch(`${SERVER_URL}/api/profile/${session.playerId}`);
+    if (!sessionRef.current.playerId) return;
+    const res = await fetch(`${SERVER_URL}/api/profile/${sessionRef.current.playerId}`);
     if (!res.ok) {
       setProfile(null);
       return;
@@ -131,7 +131,7 @@ export default function App() {
 
   function updateDisplayName(name) {
     const safe = name.replace(/[^a-zA-Z0-9 _-]/g, '').slice(0, 20);
-    const next = { ...session, displayName: safe || 'GuestPilot' };
+    const next = { ...sessionRef.current, displayName: safe || 'GuestPilot' };
     setSession(next);
     writeSession(next);
   }
@@ -139,7 +139,7 @@ export default function App() {
   function createMatch({ ranked, botDifficulty = null }) {
     if (!socket) return;
     socket.emit('CREATE_MATCH', {
-      displayName: session.displayName,
+      displayName: sessionRef.current.displayName,
       mode: ranked ? 'ranked' : 'casual',
       botDifficulty,
       settings: {
@@ -153,14 +153,14 @@ export default function App() {
     if (!socket || !code) return;
     socket.emit('JOIN_MATCH', {
       code: code.trim().toUpperCase(),
-      displayName: session.displayName,
+      displayName: sessionRef.current.displayName,
     });
   }
 
   function queueMatch() {
     if (!socket) return;
     socket.emit('QUEUE_MATCH', {
-      displayName: session.displayName,
+      displayName: sessionRef.current.displayName,
       mode: 'casual',
       settings,
     });
@@ -173,6 +173,7 @@ export default function App() {
 
   function submitMove() {
     if (!socket || !gameState || !selectedTokenIds.length) return;
+    if (!movePreview.includesInner) return;
 
     const nonce = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
@@ -206,29 +207,30 @@ export default function App() {
     setScreen('main');
     setGameState(null);
     setSelectedTokenIds([]);
+    setLastMove(null);
   }
 
   const readySelf = Boolean(gameState?.players.find((p) => p.id === session.playerId)?.ready);
 
   return (
     <div className="app-shell">
-      <div className="bg-stars" />
+      <div className="bg-stars" aria-hidden="true" />
       <header className="top-bar">
         <h1>Celestial Break</h1>
-        <nav>
+        <nav aria-label="Main navigation">
           <button type="button" className="nav-btn" onClick={() => setScreen('main')}>Menu</button>
           <button type="button" className="nav-btn" onClick={() => setScreen('tutorial')}>Tutorial</button>
           <button type="button" className="nav-btn" onClick={() => { setScreen('leaderboard'); loadLeaderboards(); }}>Leaderboard</button>
         </nav>
       </header>
 
-      {notice && <div className="notice-banner">{notice}</div>}
+      {notice && <div className="notice-banner" role="status" aria-live="polite">{notice}</div>}
 
       <main className="app-main">
         {screen === 'landing' && <Landing onStart={() => setScreen('main')} />}
         {screen === 'main' && <MainMenu profile={session} onChangeName={updateDisplayName} onNavigate={(next) => {
           if (next === 'leaderboard') loadLeaderboards();
-          if (next === 'profile') loadProfile();
+          if (next === 'profile') { loadProfile(); }
           setScreen(next);
         }} />}
         {screen === 'tutorial' && <Tutorial onBack={() => setScreen('main')} />}

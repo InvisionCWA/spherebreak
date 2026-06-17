@@ -13,7 +13,7 @@ export default function Lobby({ lobbyList, onCreate, onJoin, onQueue, onBack }) 
           <button className="secondary-btn" type="button" onClick={() => onCreate({ ranked: false, botDifficulty: 'easy' })}>Practice vs Easy Bot</button>
           <button className="secondary-btn" type="button" onClick={() => onCreate({ ranked: false, botDifficulty: 'normal' })}>Practice vs Normal Bot</button>
           <button className="secondary-btn" type="button" onClick={() => onCreate({ ranked: false, botDifficulty: 'hard' })}>Practice vs Hard Bot</button>
-          <button className="secondary-btn" type="button" onClick={onQueue}>Join Quick Queue</button>
+          <button className="secondary-btn" type="button" onClick={onQueue}>Join Quick Queue (casual)</button>
         </div>
 
         <label className="stack-field">
@@ -26,7 +26,7 @@ export default function Lobby({ lobbyList, onCreate, onJoin, onQueue, onBack }) 
 
       <CelestialPanel title="Open Lobbies" subtitle="Public waiting rooms">
         {lobbyList.length === 0 ? (
-          <p>No open lobbies right now.</p>
+          <p className="empty-state">No open lobbies right now. Create a match or use Quick Queue.</p>
         ) : (
           <ul className="lobby-list">
             {lobbyList.map((match) => (
