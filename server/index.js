@@ -23,6 +23,10 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000;
 const lobby = new LobbyService();
 
+// Per-player cooldown for rematch requests (prevents spam-clicking)
+const rematchLastAt = new Map();
+const REMATCH_COOLDOWN_MS = 5000;
+
 const httpLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 300,
@@ -169,6 +173,10 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // Send the actual score breakdown back to the submitting player immediately
+    // so the lastMove display is never zeroed out.
+    socket.emit('MOVE_ACCEPTED', { moveResult: result.moveResult });
+
     emitState(result.match);
 
     void lobby.maybeRunBotTurn(result.match).then((botResult) => {
@@ -181,6 +189,15 @@ io.on('connection', (socket) => {
   socket.on('REQUEST_REMATCH', () => {
     const playerId = socket.data.playerId;
     if (!playerId) return;
+
+    const now = Date.now();
+    const lastAt = rematchLastAt.get(playerId) || 0;
+    if (now - lastAt < REMATCH_COOLDOWN_MS) {
+      socket.emit('REQUEST_ERROR', { error: 'Rematch requested too soon. Please wait a moment.' });
+      return;
+    }
+    rematchLastAt.set(playerId, now);
+
     const rematch = lobby.requestRematch(playerId);
     if (!rematch) return;
     emitState(rematch);
@@ -189,6 +206,7 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     const result = lobby.disconnect(socket.id);
+    if (result?.playerId) rematchLastAt.delete(result.playerId);
     if (result?.match) {
       emitState(result.match);
       emitLobbyList();

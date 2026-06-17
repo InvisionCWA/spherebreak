@@ -82,6 +82,10 @@ export default function App() {
       }
     });
 
+    client.on('MOVE_ACCEPTED', ({ moveResult }) => {
+      setLastMove(moveResult);
+    });
+
     client.on('REQUEST_ERROR', ({ error }) => {
       setNotice(error);
       setTimeout(() => setNotice(''), 2500);
@@ -181,14 +185,6 @@ export default function App() {
       selectedTokenIds,
       nonce,
       boardVersion: gameState.board.version,
-    });
-
-    setLastMove({
-      playerId: session.playerId,
-      sum: movePreview.sum,
-      scoreGain: 0,
-      combo: 0,
-      streak: 0,
     });
   }
 
