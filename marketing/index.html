@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Celestial Break - Competitive Multiplayer Number Puzzle Game</title>
+    <meta
+      name="description"
+      content="Challenge players in a fast competitive puzzle game where every Break depends on timing, numbers, combos, and fair server-authoritative play."
+    />
+    <meta name="theme-color" content="#070b1f" />
+    <meta property="og:title" content="Celestial Break - Competitive Multiplayer Number Puzzle Game" />
+    <meta
+      property="og:description"
+      content="Break the target, build momentum, and race opponents in a polished real-time number puzzle showdown."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="assets/og-card.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Celestial Break - Competitive Multiplayer Number Puzzle Game" />
+    <meta
+      name="twitter:description"
+      content="Real-time multiplayer number puzzle battles with combos, streaks, quotas, bots, and ranked leaderboards."
+    />
+    <meta name="twitter:image" content="assets/og-card.svg" />
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-api-base="" data-play-url="/">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <div class="site-shell">
+      <header class="site-header" id="top">
+        <div class="brand-lockup" aria-label="Celestial Break">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <div>
+            <p class="eyebrow">Original competitive puzzle project</p>
+            <h1>Celestial Break</h1>
+          </div>
+        </div>
+        <button
+          class="menu-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="site-nav"
+          aria-label="Toggle navigation"
+        >
+          Menu
+        </button>
+        <nav class="site-nav" id="site-nav" aria-label="Primary">
+          <a href="#how-to-play">Rules</a>
+          <a href="#features">Features</a>
+          <a href="#leaderboard">Leaderboard</a>
+          <a href="#fair-play">Fair Play</a>
+          <a class="nav-cta play-link" href="/">Play Now</a>
+        </nav>
+      </header>
+
+      <main id="main-content">
+        <section class="hero section-grid">
+          <div class="hero-copy surface-panel surface-panel--hero">
+            <p class="eyebrow">Real-time multiplayer number puzzle battles</p>
+            <h2>Shatter the target. Chain the combo. Win the race.</h2>
+            <p class="hero-text">
+              Celestial Break turns fast arithmetic into a competitive arena. Draft glowing tokens,
+              hit exact multiples of the central target, and outscore your opponent before the quota closes.
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary play-link" href="/">Play Now</a>
+              <a class="button button-secondary" href="#how-to-play">View Rules</a>
+              <a class="button button-ghost" href="#leaderboard">Leaderboard</a>
+            </div>
+            <ul class="hero-points" aria-label="Key game highlights">
+              <li>Competitive multiplayer matches with ranked pressure</li>
+              <li>Bot practice and automatic CPU fallback after 60 seconds</li>
+              <li>Server-authoritative scoring, timing, and leaderboard protection</li>
+            </ul>
+          </div>
+
+          <div class="hero-visual" aria-label="Stylized Celestial Break board preview">
+            <div class="hero-board board-shell">
+              <div class="board-aura"></div>
+              <div class="board-ring board-ring--outer"></div>
+              <div class="board-ring board-ring--inner"></div>
+              <div class="target-core">
+                <span class="target-label">Target</span>
+                <strong>6</strong>
+              </div>
+              <div class="token token--hero token--inner token-pos-1 selected"><span>2</span></div>
+              <div class="token token--hero token--inner token-pos-2"><span>7</span></div>
+              <div class="token token--hero token--inner token-pos-3 selected"><span>4</span></div>
+              <div class="token token--hero token--inner token-pos-4"><span>1</span></div>
+              <div class="token token--hero token--outer token-pos-5"><span>9</span></div>
+              <div class="token token--hero token--outer token-pos-6 selected"><span>6</span></div>
+              <div class="token token--hero token--outer token-pos-7"><span>3</span></div>
+              <div class="token token--hero token--outer token-pos-8"><span>8</span></div>
+              <div class="board-status surface-panel">
+                <p>Valid Break</p>
+                <strong>2 + 4 + 6 = 12</strong>
+                <span>Positive multiple of 6. Combo pressure rising.</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="pitch-grid section-grid" aria-labelledby="pitch-title">
+          <div class="section-heading">
+            <p class="eyebrow">Why it clicks</p>
+            <h2 id="pitch-title">A puzzle duel built for momentum</h2>
+          </div>
+          <div class="card-grid card-grid--compact">
+            <article class="surface-panel info-card">
+              <h3>Select tokens</h3>
+              <p>Read the board fast and pull from inner and outer rings to shape your move.</p>
+            </article>
+            <article class="surface-panel info-card">
+              <h3>Match the target</h3>
+              <p>Every legal Break must total a positive multiple of the center number.</p>
+            </article>
+            <article class="surface-panel info-card">
+              <h3>Build streaks</h3>
+              <p>Smart chains raise combos, sharpen streak bonuses, and punish hesitation.</p>
+            </article>
+            <article class="surface-panel info-card">
+              <h3>Beat the quota</h3>
+              <p>Victory goes to the first player through quota, or the top score when turns expire.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section-grid" id="how-to-play" aria-labelledby="rules-title">
+          <div class="section-heading">
+            <p class="eyebrow">How to play</p>
+            <h2 id="rules-title">Rules you can learn in one round</h2>
+          </div>
+          <div class="rules-layout">
+            <div class="surface-panel rules-visual">
+              <div class="mini-board" aria-hidden="true">
+                <div class="target-core target-core--small"><strong>4</strong></div>
+                <div class="token token--mini token-mini-1 selected"><span>1</span></div>
+                <div class="token token--mini token-mini-2"><span>5</span></div>
+                <div class="token token--mini token-mini-3 selected"><span>3</span></div>
+                <div class="token token--mini token-mini-4"><span>8</span></div>
+                <div class="token token--mini token-mini-5 selected"><span>4</span></div>
+                <div class="token token--mini token-mini-6"><span>2</span></div>
+              </div>
+              <div class="rules-callout">
+                <p class="eyebrow">Example move</p>
+                <strong>1 + 3 + 4 = 8</strong>
+                <span>Includes an inner token and hits a clean multiple of 4.</span>
+              </div>
+            </div>
+            <div class="card-grid">
+              <article class="surface-panel rule-card">
+                <h3>1. Read the target</h3>
+                <p>A target number appears in the center and sets the rule for the next Break.</p>
+              </article>
+              <article class="surface-panel rule-card">
+                <h3>2. Build a valid sum</h3>
+                <p>Token values run from 1 to 9. Your selection must total a positive multiple of the target.</p>
+              </article>
+              <article class="surface-panel rule-card">
+                <h3>3. Start from the inner ring</h3>
+                <p>Every move must include at least one inner token. Outer tokens expand the scoring ceiling.</p>
+              </article>
+              <article class="surface-panel rule-card">
+                <h3>4. Cash in momentum</h3>
+                <p>Valid Breaks score points, extend combo and streak power, and push quota progress forward.</p>
+              </article>
+              <article class="surface-panel rule-card">
+                <h3>5. Avoid dead inputs</h3>
+                <p>Invalid moves are rejected, so precision matters as much as speed under pressure.</p>
+              </article>
+              <article class="surface-panel rule-card">
+                <h3>6. Close the match</h3>
+                <p>Reach quota first, or finish the turn limit ahead on score to take the win.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="section-grid" id="features" aria-labelledby="features-title">
+          <div class="section-heading">
+            <p class="eyebrow">Feature set</p>
+            <h2 id="features-title">Built for repeat competition</h2>
+          </div>
+          <div class="card-grid">
+            <article class="surface-panel feature-card">
+              <h3>Real-time multiplayer</h3>
+              <p>Live board sync keeps both players on the same evolving puzzle from opening move to finish.</p>
+            </article>
+            <article class="surface-panel feature-card">
+              <h3>Ranked leaderboard</h3>
+              <p>Trusted ranked results track rating, wins, losses, best score, best combo, and best streak.</p>
+            </article>
+            <article class="surface-panel feature-card">
+              <h3>Bot practice modes</h3>
+              <p>Warm up against CPU opponents or let the server fill empty competitive queues after 60 seconds.</p>
+            </article>
+            <article class="surface-panel feature-card">
+              <h3>Combo and streak scoring</h3>
+              <p>Smart sequencing turns clean arithmetic into snowball pressure that rewards both speed and planning.</p>
+            </article>
+            <article class="surface-panel feature-card">
+              <h3>Replay-friendly audit trail</h3>
+              <p>Match events can be reviewed later, giving players and testers a clear trail of what happened.</p>
+            </article>
+            <article class="surface-panel feature-card">
+              <h3>Mobile-friendly layout</h3>
+              <p>Responsive screens, comfortable tap targets, and stacked data views keep the game readable on smaller displays.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section-grid leaderboard-section" id="leaderboard" aria-labelledby="leaderboard-title">
+          <div class="section-heading section-heading--split">
+            <div>
+              <p class="eyebrow">Leaderboard</p>
+              <h2 id="leaderboard-title">See who owns the orbit</h2>
+            </div>
+            <button class="button button-secondary leaderboard-refresh" type="button">Refresh rankings</button>
+          </div>
+          <div class="leaderboard-grid">
+            <article class="surface-panel leaderboard-panel">
+              <header>
+                <h3>All-time ranked standings</h3>
+                <p>Server-trusted ratings and headline performance stats.</p>
+              </header>
+              <div class="leaderboard-state" id="leaderboard-alltime" role="status" aria-live="polite"></div>
+            </article>
+            <article class="surface-panel leaderboard-panel">
+              <header>
+                <h3>Weekly surge</h3>
+                <p>Recent ranked score totals from the last seven days.</p>
+              </header>
+              <div class="leaderboard-state" id="leaderboard-weekly" role="status" aria-live="polite"></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section-grid showcase-section" aria-labelledby="showcase-title">
+          <div class="section-heading">
+            <p class="eyebrow">Gameplay showcase</p>
+            <h2 id="showcase-title">Understand the board at a glance</h2>
+          </div>
+          <div class="showcase-layout">
+            <div class="surface-panel showcase-board">
+              <div class="showcase-board-shell">
+                <div class="target-core"><span class="target-label">Target</span><strong>5</strong></div>
+                <div class="token token--showcase token-showcase-1 selected"><span>2</span></div>
+                <div class="token token--showcase token-showcase-2"><span>9</span></div>
+                <div class="token token--showcase token-showcase-3 selected"><span>3</span></div>
+                <div class="token token--showcase token-showcase-4"><span>1</span></div>
+                <div class="token token--showcase token-showcase-5 selected"><span>5</span></div>
+                <div class="token token--showcase token-showcase-6"><span>7</span></div>
+                <div class="token token--showcase token-showcase-7"><span>4</span></div>
+                <div class="token token--showcase token-showcase-8"><span>8</span></div>
+              </div>
+            </div>
+            <div class="surface-panel showcase-breakdown">
+              <div class="breakdown-header">
+                <p class="eyebrow">Break example</p>
+                <h3>2 + 3 + 5 = 10</h3>
+              </div>
+              <dl class="metric-list">
+                <div>
+                  <dt>Result</dt>
+                  <dd>Valid Break</dd>
+                </div>
+                <div>
+                  <dt>Score gain</dt>
+                  <dd>+180</dd>
+                </div>
+                <div>
+                  <dt>Combo</dt>
+                  <dd>x4 chain</dd>
+                </div>
+                <div>
+                  <dt>Streak</dt>
+                  <dd>3 turns active</dd>
+                </div>
+                <div>
+                  <dt>Quota push</dt>
+                  <dd>8 / 12</dd>
+                </div>
+              </dl>
+              <ul class="showcase-notes">
+                <li>The selection includes an inner token, satisfying the core board rule.</li>
+                <li>Outer tokens extend scoring options without replacing the inner-ring requirement.</li>
+                <li>Fast, valid plays build momentum and force your opponent to answer immediately.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="section-grid" aria-labelledby="competitive-title">
+          <div class="section-heading">
+            <p class="eyebrow">Competitive hook</p>
+            <h2 id="competitive-title">Why every turn feels like a duel</h2>
+          </div>
+          <div class="card-grid card-grid--compact">
+            <article class="surface-panel info-card">
+              <h3>Speed matters</h3>
+              <p>Finding the line first lets you set pace, steal tempo, and pressure the next target.</p>
+            </article>
+            <article class="surface-panel info-card">
+              <h3>Precision matters</h3>
+              <p>Rejected inputs cost time, so clean math and board awareness decide tight finishes.</p>
+            </article>
+            <article class="surface-panel info-card">
+              <h3>Momentum compounds</h3>
+              <p>Combos and streaks reward deliberate sequencing instead of random number grabbing.</p>
+            </article>
+            <article class="surface-panel info-card">
+              <h3>Quota creates pressure</h3>
+              <p>Every scoring push changes the match state, making comeback windows and clutch closes meaningful.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section-grid trust-section" id="fair-play" aria-labelledby="fair-play-title">
+          <div class="section-heading">
+            <p class="eyebrow">Fair play</p>
+            <h2 id="fair-play-title">Competition backed by trusted validation</h2>
+          </div>
+          <div class="trust-grid">
+            <article class="surface-panel trust-card">
+              <h3>Server-authoritative matches</h3>
+              <p>The server validates board state, move legality, timing, scoring, and winners before ranked results are saved.</p>
+            </article>
+            <article class="surface-panel trust-card">
+              <h3>Invalid moves are rejected</h3>
+              <p>Bad sums, stale board versions, and other rejected actions do not slip into trusted match scoring.</p>
+            </article>
+            <article class="surface-panel trust-card">
+              <h3>Protected ranked standings</h3>
+              <p>Leaderboard entries come from completed ranked matches, with event logs available for audit and review.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section-grid cta-section" aria-labelledby="cta-title">
+          <div class="surface-panel cta-panel">
+            <p class="eyebrow">Ready to compete</p>
+            <h2 id="cta-title">Start a match, challenge a friend, or sharpen your route against bots.</h2>
+            <p>
+              Celestial Break rewards quick thinking, clean execution, and the confidence to chase bigger Breaks under pressure.
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary play-link" href="/">Play Celestial Break</a>
+              <a class="button button-secondary" href="#leaderboard">Climb the leaderboard</a>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <div>
+          <strong>Celestial Break</strong>
+          <p>Original game project. Competitive multiplayer number puzzle design with original identity and assets.</p>
+        </div>
+        <nav aria-label="Footer links">
+          <a class="play-link" href="/">Play</a>
+          <a href="#how-to-play">Rules</a>
+          <a href="#leaderboard">Leaderboard</a>
+          <a href="https://github.com/InvisionCWA/spherebreak" target="_blank" rel="noopener noreferrer">Source Repository</a>
+        </nav>
+      </footer>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

@@ -66,6 +66,8 @@ app.get('/api/profile/:id', async (req, res) => {
   res.json(profile);
 });
 
+app.use('/marketing', express.static(path.join(__dirname, '..', 'marketing')));
+
 app.use(express.static(path.join(__dirname, '..', 'client', 'build')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'client', 'build', 'index.html'));
