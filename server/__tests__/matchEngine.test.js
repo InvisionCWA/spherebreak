@@ -87,7 +87,6 @@ describe('matchEngine: valid move', () => {
     const p1 = match.players.get(p1Id);
     processMove(match, p1Id, { selectedTokenIds: ['i2'], nonce: 'n1', boardVersion: 1 });
     match.board.targetNumber = 4;
-    match.board.version = match.board.version;
 
     expect(p1.score).toBeGreaterThan(0);
     expect(p1.combo).toBeGreaterThanOrEqual(1);

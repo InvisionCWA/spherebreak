@@ -199,6 +199,7 @@ class LobbyService {
 
     if (match.status === MATCH_STATUS.COMPLETED) {
       void updateLeaderboardFromMatch(match);
+      this.antiCheat.cleanupMatch(match.id, Array.from(match.players.keys()));
     }
 
     return { ...result, match };
@@ -217,6 +218,7 @@ class LobbyService {
       applyTurnTimeout(match, current.id);
       if (match.status === MATCH_STATUS.COMPLETED) {
         void updateLeaderboardFromMatch(match);
+        this.antiCheat.cleanupMatch(match.id, Array.from(match.players.keys()));
       }
       changed.push(match);
     }
@@ -320,6 +322,7 @@ class LobbyService {
     const activeHumans = Array.from(match.players.values()).filter((p) => !p.isBot && p.connected);
     if (activeHumans.length === 0 && match.status !== MATCH_STATUS.COMPLETED) {
       completeMatch(match, 'abandoned');
+      this.antiCheat.cleanupMatch(match.id, Array.from(match.players.keys()));
     }
 
     this.refreshWaitingCpuFallback(match);
