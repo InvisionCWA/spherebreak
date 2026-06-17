@@ -69,11 +69,15 @@ function calculateSelection(board, selectedTokenIds) {
   const sum = selectedTokens.reduce((acc, token) => acc + token.value, 0);
   if (sum <= 0) return { error: 'Selection sum must be positive' };
 
+  const isValidBreak = sum % board.targetNumber === 0;
+  const achievedMultiple = isValidBreak ? sum / board.targetNumber : null;
+
   return {
     selectedTokens,
     sum,
-    isValidBreak: sum % board.targetNumber === 0,
+    isValidBreak,
     nearestMultiple: Math.ceil(sum / board.targetNumber) * board.targetNumber,
+    achievedMultiple,
   };
 }
 

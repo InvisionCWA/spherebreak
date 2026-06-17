@@ -16,12 +16,26 @@ export const DEFAULT_MATCH_SETTINGS = {
 };
 
 export function buildMovePreview(board, selectedTokenIds) {
-  if (!board || !selectedTokenIds.length) {
+  if (!board) {
     return {
       sum: 0,
       isValid: false,
       nearestMultiple: 0,
       includesInner: false,
+      achievedMultiple: null,
+      nextMultiples: [],
+    };
+  }
+
+  if (!selectedTokenIds.length) {
+    const target = board.targetNumber;
+    return {
+      sum: 0,
+      isValid: false,
+      nearestMultiple: target,
+      includesInner: false,
+      achievedMultiple: null,
+      nextMultiples: Array.from({ length: 4 }, (_, i) => (i + 1) * target),
     };
   }
 
@@ -40,17 +54,35 @@ export function buildMovePreview(board, selectedTokenIds) {
     if (token.zone === 'inner') includesInner = true;
   }
 
-  const nearestMultiple = board.targetNumber > 0
-    ? Math.ceil(sum / board.targetNumber) * board.targetNumber
-    : 0;
+  const target = board.targetNumber;
+  const nearestMultiple = sum > 0 && target > 0
+    ? Math.ceil(sum / target) * target
+    : target;
 
-  const isValid = includesInner && sum > 0 && sum % board.targetNumber === 0;
+  const isValid = includesInner && sum > 0 && target > 0 && sum % target === 0;
+  const achievedMultiple = isValid ? sum / target : null;
+
+  // nextMultiples: upcoming valid totals above the current aim point.
+  // When sum is already valid, show multiples starting after the current sum.
+  // When sum is 0 or invalid, show multiples starting at or after nearestMultiple.
+  let nextMultiples = [];
+  if (target > 0) {
+    const baseMultiplier = isValid
+      ? Math.round(sum / target)
+      : Math.round(nearestMultiple / target);
+    // Show 4 multiples starting from the current aim (include current when valid)
+    // or from the nearest target when not valid.
+    const startOffset = isValid ? 1 : 0;
+    nextMultiples = Array.from({ length: 4 }, (_, i) => (baseMultiplier + startOffset + i) * target);
+  }
 
   return {
     sum,
     includesInner,
     nearestMultiple,
     isValid,
+    achievedMultiple,
+    nextMultiples,
   };
 }
 

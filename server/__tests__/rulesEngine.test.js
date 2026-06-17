@@ -88,6 +88,26 @@ describe('rulesEngine: calculateSelection', () => {
     expect(result.error).toBeUndefined();
     expect(result.sum).toBe(8);
     expect(result.isValidBreak).toBe(true);
+    expect(result.achievedMultiple).toBe(2); // 8 / 4 = 2
+  });
+
+  test('valid break: single inner token exactly equals target returns achievedMultiple 1', () => {
+    const singleBoard = {
+      targetNumber: 4,
+      version: 1,
+      innerTokens: [{ id: 'i3', value: 4, zone: 'inner', age: 0 }],
+      outerTokens: [],
+    };
+    const result = calculateSelection(singleBoard, ['i3']);
+    expect(result.isValidBreak).toBe(true);
+    expect(result.achievedMultiple).toBe(1);
+  });
+
+  test('invalid break has null achievedMultiple', () => {
+    const result = calculateSelection(board, ['i1']);
+    expect(result.error).toBeUndefined();
+    expect(result.isValidBreak).toBe(false);
+    expect(result.achievedMultiple).toBeNull();
   });
 
   test('not a valid break when sum is not a multiple', () => {

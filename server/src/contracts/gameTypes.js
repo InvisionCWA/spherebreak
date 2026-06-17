@@ -14,6 +14,7 @@ const DEFAULT_SETTINGS = {
     comboStep: 1,
     comboBonusPerStack: 8,
     streakBonusPerStack: 5,
+    comboRuleType: 'token-count',
   },
 };
 
@@ -65,6 +66,7 @@ function normalizeSettings(input = {}) {
       comboStep: clamp(Number(input?.comboRules?.comboStep) || DEFAULT_SETTINGS.comboRules.comboStep, 1, 5),
       comboBonusPerStack: clamp(Number(input?.comboRules?.comboBonusPerStack) || DEFAULT_SETTINGS.comboRules.comboBonusPerStack, 1, 25),
       streakBonusPerStack: clamp(Number(input?.comboRules?.streakBonusPerStack) || DEFAULT_SETTINGS.comboRules.streakBonusPerStack, 1, 25),
+      comboRuleType: input?.comboRules?.comboRuleType === 'achieved-multiple' ? 'achieved-multiple' : 'token-count',
     },
   };
 }

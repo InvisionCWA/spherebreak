@@ -76,6 +76,8 @@ function addPlayer(match, { id, displayName, socketId, isBot = false, ready = fa
     invalidMoves: 0,
     fastestBreakMs: null,
     disconnectAbuseCount: 0,
+    lastBreakTokenCount: null,
+    lastBreakAchievedMultiple: null,
   };
 
   match.players.set(id, player);
@@ -116,6 +118,7 @@ function getCurrentPlayer(match) {
 
 function getPublicState(match, viewerId = null) {
   const currentPlayer = getCurrentPlayer(match);
+  const turnsLeft = Math.max(0, match.settings.turnLimit - match.turnCount + 1);
   return {
     id: match.id,
     code: match.code,
@@ -123,6 +126,7 @@ function getPublicState(match, viewerId = null) {
     status: match.status,
     settings: match.settings,
     turnCount: match.turnCount,
+    turnsLeft,
     currentTurnPlayerId: currentPlayer?.id || null,
     turnEndsAt: match.turnEndsAt,
     countdownEndsAt: match.countdownEndsAt || null,
@@ -241,7 +245,43 @@ function processMove(match, playerId, move) {
     ? reactionMs
     : Math.min(currentPlayer.fastestBreakMs, reactionMs);
 
-  currentPlayer.combo += match.settings.comboRules.comboStep;
+  const tokenCount = selection.selectedTokens.length;
+  const achievedMultiple = selection.achievedMultiple;
+
+  // Combo rule: server determines whether combo increases or resets based on
+  // the configured comboRuleType.  Invalid moves and timeouts reset combo to 0;
+  // a valid break either continues the existing combo (same pattern) or starts
+  // a fresh one at comboStep (pattern changed).
+  const { comboRuleType, comboStep } = match.settings.comboRules;
+  let comboIncreased = false;
+  let comboContinued = false;
+
+  if (comboRuleType === 'achieved-multiple') {
+    if (currentPlayer.combo === 0 || currentPlayer.lastBreakAchievedMultiple === achievedMultiple) {
+      currentPlayer.combo += comboStep;
+      comboIncreased = true;
+      comboContinued = currentPlayer.lastBreakAchievedMultiple !== null;
+    } else {
+      currentPlayer.combo = comboStep;
+      comboIncreased = false;
+      comboContinued = false;
+    }
+    currentPlayer.lastBreakAchievedMultiple = achievedMultiple;
+  } else {
+    // Default: 'token-count' rule — same number of tokens used as previous
+    // valid Break continues the chain.
+    if (currentPlayer.combo === 0 || currentPlayer.lastBreakTokenCount === tokenCount) {
+      currentPlayer.combo += comboStep;
+      comboIncreased = true;
+      comboContinued = currentPlayer.lastBreakTokenCount !== null;
+    } else {
+      currentPlayer.combo = comboStep;
+      comboIncreased = false;
+      comboContinued = false;
+    }
+    currentPlayer.lastBreakTokenCount = tokenCount;
+  }
+
   currentPlayer.streak += 1;
   currentPlayer.bestCombo = Math.max(currentPlayer.bestCombo, currentPlayer.combo);
   currentPlayer.bestStreak = Math.max(currentPlayer.bestStreak, currentPlayer.streak);
@@ -264,9 +304,12 @@ function processMove(match, playerId, move) {
     playerId,
     selectedTokenIds: move.selectedTokenIds,
     sum: selection.sum,
+    tokenCount,
+    achievedMultiple,
     targetNumber: match.board.targetNumber,
     scoreGain: scoring.total,
     boardVersion: match.board.version,
+    comboIncreased,
   });
 
   passTurn(match);
@@ -277,9 +320,13 @@ function processMove(match, playerId, move) {
     moveResult: {
       playerId,
       sum: selection.sum,
+      tokenCount,
+      achievedMultiple,
       scoreGain: scoring.total,
       combo: currentPlayer.combo,
       streak: currentPlayer.streak,
+      comboIncreased,
+      comboContinued,
       quotaProgress: currentPlayer.quotaProgress,
       breakdown: scoring.breakdown,
       reactionMs,
