@@ -19,6 +19,7 @@ function useCountdown(endsAt) {
 export default function MatchRoom({ state, onReady, readySelf, onBack }) {
   const isStarting = state.status === 'starting';
   const countdown = useCountdown(state.countdownEndsAt);
+  const canCopy = typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText;
 
   return (
     <div className="screen-center">
@@ -26,6 +27,17 @@ export default function MatchRoom({ state, onReady, readySelf, onBack }) {
         title={`Match Room ${state.code}`}
         subtitle={isStarting ? `Match starting in ${countdown}s` : 'Set ready to begin countdown'}
       >
+        <div className="match-code-row">
+          <strong className="match-code-text">Code: {state.code}</strong>
+          <button
+            type="button"
+            className="secondary-btn"
+            onClick={() => canCopy && navigator.clipboard.writeText(state.code)}
+            disabled={!canCopy}
+          >
+            Copy Code
+          </button>
+        </div>
         {state.mode === 'ranked' && <p className="ranked-note">Ranked match. Results affect leaderboard.</p>}
         <ul className="player-list" aria-label="Players in match room">
           {state.players.map((player) => (

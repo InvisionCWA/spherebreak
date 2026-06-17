@@ -17,7 +17,18 @@ function useCountdown(endsAt) {
   return secondsLeft;
 }
 
-export default function GameScreen({ state, selfId, selected, onSelect, movePreview, onSubmit, moveError, lastMove }) {
+export default function GameScreen({
+  state,
+  selfId,
+  selected,
+  onSelect,
+  movePreview,
+  onSubmit,
+  onClearSelection,
+  moveError,
+  lastMove,
+  isSubmittingMove,
+}) {
   const self = state.players.find((p) => p.id === selfId);
   const activeId = state.currentTurnPlayerId;
   const isMyTurn = activeId === selfId;
@@ -48,6 +59,7 @@ export default function GameScreen({ state, selfId, selected, onSelect, movePrev
       </CelestialPanel>
 
       <CelestialPanel title="Board" subtitle={`Target ${state.board.targetNumber} | Board v${state.board.version}`} className="board-panel">
+        <p className="target-help">Pick tokens that add up to a positive multiple of {state.board.targetNumber}.</p>
         <div className="core-orb" aria-label={`Target number ${state.board.targetNumber}`}>{state.board.targetNumber}</div>
         <h4>Inner Tokens <small>(at least one required)</small></h4>
         <div className="token-row">
@@ -82,6 +94,7 @@ export default function GameScreen({ state, selfId, selected, onSelect, movePrev
         <p className={timerUrgent ? 'timer-urgent' : ''} aria-live="polite" aria-label={`Time remaining: ${timerSeconds} seconds`}>
           Time: {timerSeconds}s
         </p>
+        <p>Selected tokens: {selected.length}</p>
         {showHints && <p>Selected sum: {movePreview.sum}</p>}
         {showHints && <p>Includes inner token: {movePreview.includesInner ? 'Yes' : 'No'}</p>}
         {showHints && movePreview.sum > 0 && !movePreview.isValid && (
@@ -93,10 +106,18 @@ export default function GameScreen({ state, selfId, selected, onSelect, movePrev
           type="button"
           className="primary-btn"
           onClick={onSubmit}
-          disabled={!isMyTurn || selected.length === 0 || !movePreview.includesInner}
-          aria-disabled={!isMyTurn || selected.length === 0 || !movePreview.includesInner}
+          disabled={!isMyTurn || selected.length === 0 || !movePreview.includesInner || isSubmittingMove}
+          aria-disabled={!isMyTurn || selected.length === 0 || !movePreview.includesInner || isSubmittingMove}
         >
-          Submit Move
+          {isSubmittingMove ? 'Submitting...' : 'Submit Break'}
+        </button>
+        <button
+          type="button"
+          className="secondary-btn"
+          onClick={onClearSelection}
+          disabled={selected.length === 0 || isSubmittingMove}
+        >
+          Clear Selection
         </button>
         {moveError && <p className="error-text" role="alert">{moveError}</p>}
         {lastMove && (
