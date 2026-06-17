@@ -82,29 +82,19 @@ app.use((error, _req, res, _next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-function emitState(match) {
+async function emitState(match) {
+  const rankMap = await lobby.getRankMapForPlayers(Array.from(match.players.values()));
   for (const player of match.players.values()) {
     if (!player.socketId) continue;
     io.to(player.socketId).emit('GAME_STATE_UPDATE', {
-      state: lobby.getPublicStateForPlayer(player.id),
+      state: await lobby.getPublicStateForPlayer(player.id, rankMap),
       serverTime: Date.now(),
     });
   }
 }
 
-function emitLobbyList() {
-  const open = [];
-  for (const match of lobby.matches.values()) {
-    if (match.status !== MATCH_STATUS.WAITING) continue;
-    open.push({
-      id: match.id,
-      code: match.code,
-      mode: match.mode,
-      players: Array.from(match.players.values()).map((p) => ({ id: p.id, displayName: p.displayName, ready: p.ready })),
-      maxPlayers: match.settings.maxPlayers,
-      ranked: match.settings.ranked,
-    });
-  }
+async function emitLobbyList() {
+  const open = await lobby.buildLobbyList();
   io.emit('LOBBY_LIST_UPDATE', { matches: open });
 }
 
@@ -116,10 +106,10 @@ io.on('connection', (socket) => {
 
     const reconnection = lobby.reconnectPlayer({ playerId: session.playerId, socketId: socket.id });
     if (reconnection) {
-      emitState(reconnection.match);
+      void emitState(reconnection.match);
     }
 
-    emitLobbyList();
+    void emitLobbyList();
   });
 
   socket.on('CREATE_MATCH', ({ displayName, settings, mode, botDifficulty }) => {
@@ -138,8 +128,8 @@ io.on('connection', (socket) => {
         botDifficulty,
       });
       lobby.joinMatch({ code: match.code, playerId, displayName, socketId: socket.id });
-      emitState(match);
-      emitLobbyList();
+      void emitState(match);
+      void emitLobbyList();
     } catch (error) {
       socket.emit('REQUEST_ERROR', { error: error.message });
     }
@@ -154,8 +144,8 @@ io.on('connection', (socket) => {
 
     const result = lobby.queuePlayer({ playerId, displayName, settings, mode });
     if (result.matched) {
-      emitState(result.match);
-      emitLobbyList();
+      void emitState(result.match);
+      void emitLobbyList();
     } else {
       socket.emit('QUEUE_WAITING', { queued: true });
     }
@@ -170,8 +160,8 @@ io.on('connection', (socket) => {
 
     try {
       const { match } = lobby.joinMatch({ code, playerId, displayName, socketId: socket.id });
-      emitState(match);
-      emitLobbyList();
+      void emitState(match);
+      void emitLobbyList();
     } catch (error) {
       socket.emit('REQUEST_ERROR', { error: error.message });
     }
@@ -183,7 +173,7 @@ io.on('connection', (socket) => {
     const match = lobby.setReady({ playerId, ready });
     if (!match) return;
     emitState(match);
-    emitLobbyList();
+    void emitLobbyList();
   });
 
   socket.on('SUBMIT_MOVE', (move) => {
@@ -203,7 +193,7 @@ io.on('connection', (socket) => {
 
     void lobby.maybeRunBotTurn(result.match).then((botResult) => {
       if (botResult && botResult.match) {
-        emitState(botResult.match);
+        void emitState(botResult.match);
       }
     });
   });
@@ -222,31 +212,31 @@ io.on('connection', (socket) => {
 
     const rematch = lobby.requestRematch(playerId);
     if (!rematch) return;
-    emitState(rematch);
-    emitLobbyList();
+    void emitState(rematch);
+    void emitLobbyList();
   });
 
   socket.on('disconnect', () => {
     const result = lobby.disconnect(socket.id);
     if (result?.playerId) rematchLastAt.delete(result.playerId);
     if (result?.match) {
-      emitState(result.match);
-      emitLobbyList();
+      void emitState(result.match);
+      void emitLobbyList();
     }
   });
 });
 
 setInterval(() => {
   const activated = lobby.activateStartedMatches();
-  activated.forEach((match) => emitState(match));
+  activated.forEach((match) => { void emitState(match); });
 
   const timedOut = lobby.applyTimeouts();
-  timedOut.forEach((match) => emitState(match));
+  timedOut.forEach((match) => { void emitState(match); });
 
   for (const match of lobby.matches.values()) {
     if (match.status === MATCH_STATUS.ACTIVE) {
       void lobby.maybeRunBotTurn(match).then((botResult) => {
-        if (botResult?.match) emitState(botResult.match);
+        if (botResult?.match) void emitState(botResult.match);
       });
     }
   }

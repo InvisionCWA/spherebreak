@@ -116,7 +116,7 @@ function getCurrentPlayer(match) {
   return match.players.get(id);
 }
 
-function getPublicState(match, viewerId = null) {
+function getPublicState(match, viewerId = null, rankByPlayerId = {}) {
   const currentPlayer = getCurrentPlayer(match);
   const turnsLeft = Math.max(0, match.settings.turnLimit - match.turnCount + 1);
   return {
@@ -143,6 +143,7 @@ function getPublicState(match, viewerId = null) {
       connected: player.connected,
       isBot: player.isBot,
       isSelf: player.id === viewerId,
+      playerRank: rankByPlayerId[player.id] || null,
     })),
   };
 }
