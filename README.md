@@ -351,6 +351,96 @@ flowchart LR
   API --> DB
 ```
 
+## Copilot Customizations
+
+This repository includes custom GitHub Copilot agents and prompt wrappers under `.github/` to speed up common workflows safely.
+
+### Folder layout
+
+- `.github/agents/`: reusable specialized agents
+- `.github/prompts/`: user-invocable prompt wrappers that call agents with structured inputs
+- `.github/instructions/`: project-wide coding and safety guidance
+- `.github/skills/`: reusable domain workflow guidance
+
+### Custom agents
+
+The following agent files are available in `.github/agents/`:
+
+1. `agent-governance-reviewer.agent.md`
+Purpose: reviews agent customizations for safety, policy clarity, and maintainable governance controls.
+When to use: when editing or auditing `.github/agents`, `.github/prompts`, `.github/skills`, or `.github/instructions`.
+
+2. `awesome-copilot-selector.agent.md`
+Purpose: analyzes this repository and curates relevant assets from `github/awesome-copilot`.
+When to use: when you want recommendations (or installation plans) for additional agents, skills, and instructions.
+
+3. `docker-portainer-deploy.agent.md`
+Purpose: validates local Docker runs and prepares production-ready Portainer deployment artifacts.
+When to use: Docker Desktop testing, Portainer stack updates, persistence hardening, and rollout/rollback planning.
+
+4. `github-actions-expert.agent.md`
+Purpose: improves GitHub Actions with least-privilege permissions, reliable execution, and safer action usage.
+When to use: CI/CD workflow authoring, hardening, troubleshooting, and optimization in `.github/workflows/`.
+
+5. `playwright-tester.agent.md`
+Purpose: browser-flow validation and Playwright test generation/triage.
+When to use: UI regression checks, scenario-based e2e tests, and investigation of frontend behavior.
+
+6. `celestial-break-visual-asset.agent.md`
+Purpose: visual identity and asset polish agent for Celestial Break.
+When to use: improving game visuals, tokens, board styling, badges, leaderboard presentation, and asset documentation/licensing.
+
+### Prompt wrappers
+
+The following prompt files are available in `.github/prompts/`:
+
+1. `docker-portainer-deploy.prompt.md`
+Agent used: `Docker Portainer Deploy Agent`.
+Use for: full Docker validation plus Portainer artifact generation and deployment procedure output.
+
+2. `docker-portainer-update-only.prompt.md`
+Agent used: `Docker Portainer Deploy Agent`.
+Use for: Portainer stack and env updates only, without local Docker validation by default.
+
+3. `celestial-break-visual-polish.prompt.md`
+Agent used: `Celestial Break Visual Asset Agent`.
+Use for: end-to-end visual audit/polish workflow with accessibility, licensing, and performance constraints.
+
+### How to invoke
+
+- Open Copilot Chat and invoke the agent directly by name.
+- Or use a prompt wrapper from `.github/prompts/` and provide the requested input details.
+
+### Feature-to-agent mapping
+
+- Multiplayer/gameplay visuals and presentation: `Celestial Break Visual Asset Agent`
+- Browser-level gameplay and UI testing: `Playwright Tester Mode`
+- CI pipeline quality and security: `GitHub Actions Expert`
+- Docker and Portainer deployment workflows: `Docker Portainer Deploy Agent`
+- Customization governance and policy checks: `Agent Governance Reviewer`
+- Discovering additional relevant Copilot assets: `Awesome Copilot Selector Agent`
+
+### Current project instructions and skills
+
+Active instruction files include:
+
+- `.github/instructions/security-and-owasp.instructions.md`
+- `.github/instructions/containerization-docker-best-practices.instructions.md`
+- `.github/instructions/github-actions-ci-cd-best-practices.instructions.md`
+
+Active skill folders include:
+
+- `.github/skills/dependabot/`
+- `.github/skills/github-actions-hardening/`
+- `.github/skills/javascript-typescript-jest/`
+- `.github/skills/webapp-testing/`
+
+### Notes
+
+- Agents and prompts are workflow helpers; they do not automatically modify runtime gameplay behavior unless explicitly asked.
+- Deployment-related prompts are designed to preserve persistence and avoid unsafe production changes by default.
+- Visual prompts enforce original, legally safe, documented asset usage.
+
 ## Security Notes
 
 - Server is authoritative for scoring, timing, move validity, and outcomes
