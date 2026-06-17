@@ -78,10 +78,10 @@ test.describe('Game UI — keyboard and accessibility', () => {
 
   test('notice banner has aria-live="polite"', async ({ page }) => {
     await page.goto('/');
-    // The notice banner is conditionally rendered; check it carries the right
-    // attribute when it appears (evaluate the DOM template via source check).
-    const html = await page.content();
-    expect(html).toContain('aria-live');
+    await page.getByRole('button', { name: /start|play|begin/i }).first().click();
+    await page.getByRole('button', { name: /lobby/i }).first().click();
+    await page.getByRole('button', { name: /quick queue/i }).click();
+    await expect(page.locator('.notice-banner')).toHaveAttribute('aria-live', 'polite');
   });
 });
 

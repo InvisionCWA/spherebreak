@@ -30,19 +30,18 @@ test.describe('Landing & navigation', () => {
 
   test('top-bar Tutorial link shows tutorial screen', async ({ page }) => {
     await page.getByRole('button', { name: /tutorial/i }).click();
-    await expect(page.getByRole('heading', { name: /tutorial/i, level: 2 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /How to Play/i, level: 2 })).toBeVisible();
   });
 
   test('top-bar Menu button returns to main menu from tutorial', async ({ page }) => {
     await page.getByRole('button', { name: /tutorial/i }).click();
     await page.getByRole('button', { name: /menu/i }).click();
-    // Landing → main after clicking Menu; just assert no crash
-    await expect(page.locator('.app-shell')).toBeVisible();
+    await expect(page.getByText(/Player Session/i)).toBeVisible();
   });
 
   test('top-bar Leaderboard link shows leaderboard panel', async ({ page }) => {
     await page.getByRole('button', { name: /leaderboard/i }).click();
-    await expect(page.getByRole('heading', { name: /leaderboard/i, level: 2 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /All-Time Ranked Leaderboard/i, level: 2 })).toBeVisible();
   });
 
   test('notice banner is not visible on initial load', async ({ page }) => {
@@ -73,7 +72,7 @@ test.describe('Main menu', () => {
     // Find any button that leads to the lobby
     const lobbyBtn = page.getByRole('button', { name: /lobby|quick play|join/i }).first();
     await lobbyBtn.click();
-    await expect(page.getByRole('heading', { name: /lobby/i, level: 2 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Create or Join Match/i, level: 2 })).toBeVisible();
   });
 });
 
