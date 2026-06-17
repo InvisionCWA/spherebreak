@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const MAX_MOVE_SELECTION = 29;
 const MAX_NONCE_LENGTH = 64;
+const MAX_TOKEN_ID_LENGTH = 80;
 
 function randomInt(min, max, random = Math.random) {
   return Math.floor(random() * (max - min + 1)) + min;
@@ -42,7 +43,9 @@ function validateMoveInput(move) {
   if (!Array.isArray(move.selectedTokenIds) || move.selectedTokenIds.length === 0) return 'At least one token is required';
   if (move.selectedTokenIds.length > MAX_MOVE_SELECTION) return 'Too many tokens selected';
   if (move.selectedTokenIds.some((id) => typeof id !== 'string')) return 'Token IDs must be strings';
-  if (move.selectedTokenIds.some((id) => id.length > 80)) return 'Token ID exceeds maximum length of 80 characters';
+  if (move.selectedTokenIds.some((id) => id.length > MAX_TOKEN_ID_LENGTH)) {
+    return `Token ID exceeds maximum length of ${MAX_TOKEN_ID_LENGTH} characters`;
+  }
   if (new Set(move.selectedTokenIds).size !== move.selectedTokenIds.length) return 'Duplicate token selections are not allowed';
   if (!move.nonce || typeof move.nonce !== 'string') return 'Move nonce required';
   if (move.nonce.length > MAX_NONCE_LENGTH) return 'Move nonce too long';
