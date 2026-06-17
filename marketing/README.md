@@ -19,7 +19,7 @@ Recommended options:
 1. Serve the main app and open `http://localhost:3000/marketing/` after building the client and starting the server.
 2. Open `marketing/index.html` directly for static review.
 
-If you open the file directly and need a different destination for the main game, append a query parameter such as `?play=/` or edit the `data-play-url` value on the `<body>` element in `index.html`.
+If you open the file directly and need a different destination for the main game, edit the `data-play-url` value on the `<body>` element in `index.html`.
 
 ## Leaderboard Data
 
@@ -43,8 +43,7 @@ The server can safely expose this folder at `/marketing/` without changing the m
 
 If deployment needs a different game URL later, update:
 
-- `data-play-url` on the `<body>` element in `marketing/index.html`, or
-- the runtime `?play=/desired/path` query parameter
+- `data-play-url` on the `<body>` element in `marketing/index.html`
 
 ## Asset Notes
 

@@ -27,7 +27,7 @@
     }
   }
 
-  const configuredPlayUrl = getSafePlayUrl(query.get('play'));
+  const configuredPlayUrl = getSafePlayUrl(body.dataset.playUrl || '/');
   playLinks.forEach((link) => {
     link.setAttribute('href', configuredPlayUrl);
   });
@@ -61,7 +61,12 @@
     shell.className = className;
 
     const label = document.createElement('p');
-    label.className = className === 'loading-shell' ? 'loading-copy' : className === 'error-shell' ? 'error-copy' : 'empty-copy';
+    const labelClasses = {
+      'loading-shell': 'loading-copy',
+      'error-shell': 'error-copy',
+      'empty-shell': 'empty-copy',
+    };
+    label.className = labelClasses[className] || 'empty-copy';
     label.textContent = title;
     shell.appendChild(label);
 
@@ -92,7 +97,9 @@
   }
 
   function formatPercent(value) {
-    return `${Math.round(Number(value || 0) * 100)}%`;
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return 'N/A';
+    return `${Math.round(numeric * 100)}%`;
   }
 
   function formatMs(value) {
@@ -238,7 +245,6 @@
     }
 
   }
-
   if (refreshButton) {
     refreshButton.addEventListener('click', loadLeaderboards);
   }
