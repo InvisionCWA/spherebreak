@@ -17,9 +17,9 @@ export default function CoinCell({ coin, selectionIndex, isSelected, onClick, di
       onClick={!disabled && onClick ? onClick : undefined}
       title={
         coin.type === 'multiplier'
-          ? `Multiplier ×${coin.multiplier} (value ${coin.value})`
+          ? `Multiplier x${coin.multiplier} (value ${coin.value})`
           : coin.type === 'echo'
-          ? 'Echo – repeats last coin value'
+          ? 'Echo token repeats last token value'
           : `Value: ${coin.value}`
       }
       role={!disabled && onClick ? 'button' : undefined}
@@ -34,10 +34,10 @@ export default function CoinCell({ coin, selectionIndex, isSelected, onClick, di
         <span className="selection-index">{selectionIndex}</span>
       )}
       <span className="coin-value">
-        {coin.type === 'echo' ? '↺' : coin.value}
+        {coin.type === 'echo' ? 'E' : coin.value}
       </span>
       {coin.type === 'multiplier' && (
-        <span className="coin-mult">×{coin.multiplier}</span>
+        <span className="coin-mult">x{coin.multiplier}</span>
       )}
     </div>
   );

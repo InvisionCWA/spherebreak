@@ -7,7 +7,7 @@ export default function Timer({ turnTimer, isMyTurn }) {
     <div
       className={`timer${isMyTurn ? ' my-turn' : ''}${urgent ? ' urgent' : ''}`}
     >
-      <span className="timer-icon">⏱</span>
+      <span className="timer-icon">T</span>
       <span className="timer-value">{turnTimer}s</span>
     </div>
   );

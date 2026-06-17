@@ -1,11 +1,22 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { io } from 'socket.io-client';
 import './App.css';
-import Board from './components/Board';
-import CoreDisplay from './components/CoreDisplay';
-import PlayerInfo from './components/PlayerInfo';
-import RunningSum from './components/RunningSum';
-import Timer from './components/Timer';
+import Landing from './screens/Landing';
+import MainMenu from './screens/MainMenu';
+import Tutorial from './screens/Tutorial';
+import Lobby from './screens/Lobby';
+import MatchRoom from './screens/MatchRoom';
+import GameScreen from './screens/GameScreen';
+import Results from './screens/Results';
+import Leaderboard from './screens/Leaderboard';
+import Profile from './screens/Profile';
+import Settings from './screens/Settings';
+import {
+  DEFAULT_MATCH_SETTINGS,
+  buildMovePreview,
+  readSession,
+  writeSession,
+} from './state/gameClientStore';
 
 const SERVER_URL =
   process.env.REACT_APP_SERVER_URL ||
@@ -13,272 +24,225 @@ const SERVER_URL =
 
 export default function App() {
   const [socket, setSocket] = useState(null);
+  const [session, setSession] = useState(() => {
+    const existing = readSession();
+    return existing || { playerId: null, displayName: 'GuestPilot' };
+  });
+
+  const [screen, setScreen] = useState('landing');
+  const [settings, setSettings] = useState({ ...DEFAULT_MATCH_SETTINGS, beginnerHints: true });
+  const [lobbyList, setLobbyList] = useState([]);
   const [gameState, setGameState] = useState(null);
-  const [playerId, setPlayerId] = useState(null);
-  const [playerIndex, setPlayerIndex] = useState(null);
-  const [selectedCoinIds, setSelectedCoinIds] = useState([]);
-  const [playerName, setPlayerName] = useState('');
-  const [joined, setJoined] = useState(false);
-  const [turnTimer, setTurnTimer] = useState(120);
-  const [moveResult, setMoveResult] = useState(null);
-  const [moveError, setMoveError] = useState(null);
-  const [disconnected, setDisconnected] = useState(false);
+  const [selectedTokenIds, setSelectedTokenIds] = useState([]);
+  const [moveError, setMoveError] = useState('');
+  const [lastMove, setLastMove] = useState(null);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [weeklyLeaderboard, setWeeklyLeaderboard] = useState([]);
+  const [profile, setProfile] = useState(null);
+  const [notice, setNotice] = useState('');
 
   useEffect(() => {
-    const s = io(SERVER_URL);
-    setSocket(s);
+    const client = io(SERVER_URL);
+    setSocket(client);
 
-    s.on('JOINED_GAME', ({ playerIndex: idx, playerId: pid }) => {
-      setPlayerIndex(idx);
-      setPlayerId(pid);
-      setJoined(true);
+    client.on('connect', () => {
+      client.emit('CLIENT_HELLO', {
+        playerId: session.playerId,
+        displayName: session.displayName,
+      });
     });
 
-    s.on('GAME_STATE_UPDATE', ({ state }) => {
+    client.on('SESSION_READY', (payload) => {
+      setSession((prev) => {
+        const next = {
+          ...prev,
+          playerId: payload.playerId,
+          displayName: payload.displayName || prev.displayName,
+        };
+        writeSession(next);
+        return next;
+      });
+    });
+
+    client.on('LOBBY_LIST_UPDATE', ({ matches }) => {
+      setLobbyList(matches || []);
+    });
+
+    client.on('GAME_STATE_UPDATE', ({ state }) => {
       setGameState(state);
-      setTurnTimer(state.turnTimer);
-      if (state.lastMoveResult) {
-        setMoveResult(state.lastMoveResult);
-        setTimeout(() => setMoveResult(null), 2500);
+      setSelectedTokenIds([]);
+      setMoveError('');
+
+      if (state.status === 'waiting' || state.status === 'starting') {
+        setScreen('matchroom');
+      } else if (state.status === 'active') {
+        setScreen('game');
+      } else if (state.status === 'completed') {
+        setScreen('results');
       }
-      setSelectedCoinIds([]);
     });
 
-    s.on('TIMER_TICK', ({ turnTimer: t }) => {
-      setTurnTimer(t);
+    client.on('MOVE_REJECTED', ({ reason, preview }) => {
+      setMoveError(preview ? `${reason}. nearest multiple ${preview.nearestMultiple}` : reason);
     });
 
-    s.on('MOVE_ERROR', ({ error }) => {
-      setMoveError(error);
-      setTimeout(() => setMoveError(null), 2000);
+    client.on('REQUEST_ERROR', ({ error }) => {
+      setNotice(error);
+      setTimeout(() => setNotice(''), 2500);
     });
 
-    s.on('PLAYER_DISCONNECTED', () => {
-      setDisconnected(true);
-    });
+    client.on('QUEUE_WAITING', () => setNotice('Queued for matchmaking.'));
 
-    return () => s.disconnect();
-  }, []);
+    return () => {
+      client.disconnect();
+    };
+  }, [session.playerId, session.displayName]);
 
-  const joinGame = useCallback(() => {
-    if (socket && playerName.trim()) {
-      socket.emit('JOIN_GAME', { playerName: playerName.trim() });
+  const movePreview = useMemo(() => buildMovePreview(gameState?.board, selectedTokenIds), [gameState, selectedTokenIds]);
+
+  async function loadLeaderboards() {
+    const [allRes, weekRes] = await Promise.all([
+      fetch(`${SERVER_URL}/api/leaderboard?period=all-time`),
+      fetch(`${SERVER_URL}/api/leaderboard?period=weekly`),
+    ]);
+    const all = await allRes.json();
+    const week = await weekRes.json();
+    setLeaderboard(all.entries || []);
+    setWeeklyLeaderboard(week.entries || []);
+  }
+
+  async function loadProfile() {
+    if (!session.playerId) return;
+    const res = await fetch(`${SERVER_URL}/api/profile/${session.playerId}`);
+    if (!res.ok) {
+      setProfile(null);
+      return;
     }
-  }, [socket, playerName]);
+    setProfile(await res.json());
+  }
 
-  const toggleCoin = useCallback((coinId) => {
-    setSelectedCoinIds((prev) => {
-      if (prev.includes(coinId)) {
-        return prev.filter((id) => id !== coinId);
-      }
-      return [...prev, coinId];
+  function updateDisplayName(name) {
+    const safe = name.replace(/[^a-zA-Z0-9 _-]/g, '').slice(0, 20);
+    const next = { ...session, displayName: safe || 'GuestPilot' };
+    setSession(next);
+    writeSession(next);
+  }
+
+  function createMatch({ ranked, botDifficulty = null }) {
+    if (!socket) return;
+    socket.emit('CREATE_MATCH', {
+      displayName: session.displayName,
+      mode: ranked ? 'ranked' : 'casual',
+      botDifficulty,
+      settings: {
+        ...settings,
+        ranked,
+      },
     });
-  }, []);
-
-  const submitMove = useCallback(() => {
-    if (socket && selectedCoinIds.length > 0) {
-      socket.emit('SUBMIT_MOVE', { selectedCoinIds });
-    }
-  }, [socket, selectedCoinIds]);
-
-  const isMyTurn =
-    gameState != null &&
-    playerId != null &&
-    gameState.status === 'playing' &&
-    gameState.players[gameState.currentPlayerIndex].id === playerId;
-
-  // Compute running sum from selected coins (mirrors server echo logic)
-  const runningSum = useMemo(() => {
-    if (!gameState) return 0;
-    const boardMap = new Map(gameState.board.map((c) => [c.id, c]));
-    let sum = 0;
-    let lastValue = 0;
-    for (const id of selectedCoinIds) {
-      const coin = boardMap.get(id);
-      if (!coin) continue;
-      if (coin.type === 'echo') {
-        sum += lastValue;
-      } else {
-        sum += coin.value;
-        lastValue = coin.value;
-      }
-    }
-    return sum;
-  }, [gameState, selectedCoinIds]);
-
-  if (disconnected) {
-    return (
-      <div className="App lobby">
-        <div className="lobby-box">
-          <h1>Sphere Break</h1>
-          <p className="error">
-            A player has disconnected. Please refresh to start a new game.
-          </p>
-        </div>
-      </div>
-    );
   }
 
-  if (!joined) {
-    return (
-      <div className="App lobby">
-        <div className="lobby-box">
-          <h1>⬡ Sphere Break</h1>
-          <p>A turn-based numerical puzzle game</p>
-          <input
-            className="name-input"
-            type="text"
-            placeholder="Enter your name"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && joinGame()}
-            maxLength={20}
-          />
-          <button
-            className="join-btn"
-            onClick={joinGame}
-            disabled={!playerName.trim()}
-          >
-            Join Game
-          </button>
-        </div>
-      </div>
-    );
+  function joinMatch(code) {
+    if (!socket || !code) return;
+    socket.emit('JOIN_MATCH', {
+      code: code.trim().toUpperCase(),
+      displayName: session.displayName,
+    });
   }
 
-  if (!gameState || gameState.status === 'waiting') {
-    return (
-      <div className="App lobby">
-        <div className="lobby-box">
-          <h1>⬡ Sphere Break</h1>
-          <p>Waiting for another player to join…</p>
-          <div className="spinner" />
-        </div>
-      </div>
-    );
+  function queueMatch() {
+    if (!socket) return;
+    socket.emit('QUEUE_MATCH', {
+      displayName: session.displayName,
+      mode: 'casual',
+      settings,
+    });
   }
 
-  if (gameState.status === 'finished') {
-    const [p1, p2] = gameState.players;
-    const winner =
-      p1.score > p2.score ? p1 : p2.score > p1.score ? p2 : null;
-    return (
-      <div className="App lobby">
-        <div className="lobby-box">
-          <h1>Game Over!</h1>
-          {winner ? (
-            <p className="winner">
-              {winner.name} wins with {winner.score} points!
-            </p>
-          ) : (
-            <p className="winner">It&apos;s a tie!</p>
-          )}
-          <div className="final-scores">
-            {gameState.players.map((p, i) => (
-              <div key={i} className="final-score-row">
-                <span>{p.name}</span>
-                <span>{p.score} pts</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+  function toggleReady(ready) {
+    if (!socket) return;
+    socket.emit('TOGGLE_READY', { ready });
   }
+
+  function submitMove() {
+    if (!socket || !gameState || !selectedTokenIds.length) return;
+
+    const nonce = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+    socket.emit('SUBMIT_MOVE', {
+      selectedTokenIds,
+      nonce,
+      boardVersion: gameState.board.version,
+    });
+
+    setLastMove({
+      playerId: session.playerId,
+      sum: movePreview.sum,
+      scoreGain: 0,
+      combo: 0,
+      streak: 0,
+    });
+  }
+
+  function toggleToken(tokenId) {
+    setSelectedTokenIds((prev) => {
+      if (prev.includes(tokenId)) return prev.filter((id) => id !== tokenId);
+      return [...prev, tokenId];
+    });
+  }
+
+  function updateSettings(key, value) {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function backToMain() {
+    setScreen('main');
+    setGameState(null);
+    setSelectedTokenIds([]);
+  }
+
+  const readySelf = Boolean(gameState?.players.find((p) => p.id === session.playerId)?.ready);
 
   return (
-    <div className="App game">
-      <header className="game-header">
-        <h1>⬡ Sphere Break</h1>
-        <Timer turnTimer={turnTimer} isMyTurn={isMyTurn} />
+    <div className="app-shell">
+      <div className="bg-stars" />
+      <header className="top-bar">
+        <h1>Celestial Break</h1>
+        <nav>
+          <button type="button" className="nav-btn" onClick={() => setScreen('main')}>Menu</button>
+          <button type="button" className="nav-btn" onClick={() => setScreen('tutorial')}>Tutorial</button>
+          <button type="button" className="nav-btn" onClick={() => { setScreen('leaderboard'); loadLeaderboards(); }}>Leaderboard</button>
+        </nav>
       </header>
 
-      <div className="game-main">
-        <div className="side-panel">
-          <PlayerInfo
-            player={gameState.players[0]}
-            isActive={gameState.currentPlayerIndex === 0}
-            isMe={playerIndex === 0}
-          />
-          <PlayerInfo
-            player={gameState.players[1]}
-            isActive={gameState.currentPlayerIndex === 1}
-            isMe={playerIndex === 1}
-          />
-        </div>
+      {notice && <div className="notice-banner">{notice}</div>}
 
-        <div className="center-panel">
-          <CoreDisplay
-            core={gameState.core}
-            quota={gameState.quota}
-            sum={runningSum}
-            moveResult={moveResult}
+      <main className="app-main">
+        {screen === 'landing' && <Landing onStart={() => setScreen('main')} />}
+        {screen === 'main' && <MainMenu profile={session} onChangeName={updateDisplayName} onNavigate={(next) => {
+          if (next === 'leaderboard') loadLeaderboards();
+          if (next === 'profile') loadProfile();
+          setScreen(next);
+        }} />}
+        {screen === 'tutorial' && <Tutorial onBack={() => setScreen('main')} />}
+        {screen === 'lobby' && <Lobby lobbyList={lobbyList} onCreate={createMatch} onJoin={joinMatch} onQueue={queueMatch} onBack={() => setScreen('main')} />}
+        {screen === 'matchroom' && gameState && <MatchRoom state={gameState} readySelf={readySelf} onReady={toggleReady} onBack={backToMain} />}
+        {screen === 'game' && gameState && (
+          <GameScreen
+            state={gameState}
+            selfId={session.playerId}
+            selected={selectedTokenIds}
+            onSelect={toggleToken}
+            movePreview={movePreview}
+            onSubmit={submitMove}
+            moveError={moveError}
+            lastMove={lastMove}
           />
-          <Board
-            board={gameState.board}
-            selectedCoinIds={selectedCoinIds}
-            onCoinClick={isMyTurn ? toggleCoin : null}
-            moveResult={moveResult}
-          />
-          <RunningSum sum={runningSum} core={gameState.core} />
-          {isMyTurn && (
-            <button
-              className="submit-btn"
-              onClick={submitMove}
-              disabled={selectedCoinIds.length === 0}
-            >
-              Submit ({selectedCoinIds.length} coin
-              {selectedCoinIds.length !== 1 ? 's' : ''})
-            </button>
-          )}
-          {!isMyTurn && gameState.status === 'playing' && (
-            <p className="waiting-turn">
-              Waiting for{' '}
-              {gameState.players[gameState.currentPlayerIndex].name}…
-            </p>
-          )}
-          {moveError && <p className="error">{moveError}</p>}
-        </div>
-
-        <div className="side-panel right-panel">
-          {moveResult && (
-            <div
-              className={`move-result ${
-                moveResult.moveSuccess
-                  ? moveResult.isCoreBreak
-                    ? 'core-break'
-                    : 'success'
-                  : 'failure'
-              }`}
-            >
-              {moveResult.timerExpired ? (
-                <span>⏱ Time&apos;s up!</span>
-              ) : moveResult.isCoreBreak ? (
-                <span>✨ CORE BREAK! +{moveResult.scoreGain}</span>
-              ) : moveResult.moveSuccess ? (
-                <span>✓ Success! +{moveResult.scoreGain}</span>
-              ) : (
-                <span>✗ Failure</span>
-              )}
-            </div>
-          )}
-          <div className="round-info">
-            Round {Math.ceil(gameState.round / 2)} /{' '}
-            {gameState.maxRounds}
-          </div>
-          <div className="legend">
-            <div className="legend-item">
-              <span className="legend-dot normal" /> Normal
-            </div>
-            <div className="legend-item">
-              <span className="legend-dot multiplier" /> Multiplier ×2
-            </div>
-            <div className="legend-item">
-              <span className="legend-dot echo" /> Echo ↺
-            </div>
-          </div>
-        </div>
-      </div>
+        )}
+        {screen === 'results' && gameState && <Results state={gameState} onRematch={() => socket?.emit('REQUEST_REMATCH')} onExit={backToMain} />}
+        {screen === 'leaderboard' && <Leaderboard entries={leaderboard} weeklyEntries={weeklyLeaderboard} onRefresh={loadLeaderboards} onBack={() => setScreen('main')} />}
+        {screen === 'profile' && <Profile profile={profile} onLoad={loadProfile} onBack={() => setScreen('main')} />}
+        {screen === 'settings' && <Settings settings={settings} onUpdate={updateSettings} onBack={() => setScreen('main')} />}
+      </main>
     </div>
   );
 }
