@@ -4,6 +4,8 @@ const { toPublicRankDto } = require('../contracts/rankContract');
 
 const MIN_MATCHES_FOR_CONFIDENT_FALLBACK = 3;
 const BASE_RATING = 1000;
+const WIN_RATING_DELTA = 20;
+const LOSS_RATING_DELTA = 10;
 const MAX_FALLBACK_BEFORE_MIN_MATCHES = 1199;
 
 const RANK_TIERS = Object.freeze([
@@ -102,8 +104,9 @@ function normalizeStats(stats = {}) {
 
 function calculateFallbackRating(stats = {}) {
   const normalized = normalizeStats(stats);
-  const estimate = BASE_RATING + (normalized.wins * 20) - (normalized.losses * 10);
+  const estimate = BASE_RATING + (normalized.wins * WIN_RATING_DELTA) - (normalized.losses * LOSS_RATING_DELTA);
   if (normalized.totalMatches < MIN_MATCHES_FOR_CONFIDENT_FALLBACK) {
+    // Prevent early over-promotion until a player has enough ranked history.
     return Math.min(estimate, MAX_FALLBACK_BEFORE_MIN_MATCHES);
   }
   return Math.max(0, estimate);
@@ -111,7 +114,9 @@ function calculateFallbackRating(stats = {}) {
 
 function resolveRating(stats = {}) {
   const normalized = normalizeStats(stats);
-  return normalized.rating == null ? calculateFallbackRating(normalized) : normalized.rating;
+  return normalized.rating === null || normalized.rating === undefined
+    ? calculateFallbackRating(normalized)
+    : normalized.rating;
 }
 
 function getRankTierForRating(rating) {
@@ -155,6 +160,8 @@ function buildRankDto(stats = {}) {
 
 module.exports = {
   BASE_RATING,
+  WIN_RATING_DELTA,
+  LOSS_RATING_DELTA,
   MIN_MATCHES_FOR_CONFIDENT_FALLBACK,
   RANK_TIERS,
   normalizeStats,

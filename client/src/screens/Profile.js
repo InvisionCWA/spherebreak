@@ -2,6 +2,11 @@ import React from 'react';
 import CelestialPanel from '../components/ui/CelestialPanel';
 import PlayerIdentity from '../components/ui/PlayerIdentity';
 
+function getNextRankMessage(playerRank) {
+  if (playerRank?.isTopRank) return 'Top celestial rank reached';
+  return `Next rank: ${playerRank?.nextRankName || 'Pending'}`;
+}
+
 export default function Profile({ profile, onLoad, onBack }) {
   return (
     <div className="screen-center">
@@ -24,7 +29,7 @@ export default function Profile({ profile, onLoad, onBack }) {
               <p>Best combo: {profile.stats.bestCombo}</p>
               <p>Best streak: {profile.stats.bestStreak}</p>
               <p>Fastest valid Break: {profile.stats.fastestValidBreakMs ?? 'n/a'} ms</p>
-              <p>{profile.playerRank?.isTopRank ? 'Top celestial rank reached' : `Next rank: ${profile.playerRank?.nextRankName || 'Pending'}`}</p>
+              <p>{getNextRankMessage(profile.playerRank)}</p>
             </div>
           </>
         ) : (

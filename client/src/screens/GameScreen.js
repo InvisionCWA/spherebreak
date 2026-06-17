@@ -38,7 +38,6 @@ function ComboExplanation({ lastMove, comboRuleType }) {
   } else if (!comboContinued) {
     detail = `Break Chain started (${tokenCount} token${tokenCount !== 1 ? 's' : ''})`;
   } else {
-    // A previous chain existed, but the current valid break changed token count.
     detail = `Chain reset — token count changed (${tokenCount})`;
   }
 

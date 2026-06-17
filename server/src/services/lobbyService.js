@@ -176,7 +176,7 @@ class LobbyService {
   }
 
   async getRankMapForPlayers(players = []) {
-    return getRanksForUsers(players.map((player) => ({ id: player.id, isBot: player.isBot })));
+    return getRanksForUsers(players.map((player) => ({ id: player.id })));
   }
 
   async buildLobbyList() {

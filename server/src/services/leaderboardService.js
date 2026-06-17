@@ -4,6 +4,10 @@ const { getPrismaClient } = require('../db/client');
 const { buildRankDto } = require('../domain/rankDomain');
 const { getRanksForUsers } = require('./rankService');
 
+/**
+ * Build neutral trusted stats for players without persisted ranked history.
+ * @returns {{rating:number,wins:number,losses:number,winRate:number,bestScore:number,bestCombo:number,bestStreak:number,fastestValidBreakMs:null}}
+ */
 function buildDefaultStats() {
   return {
     rating: 1000,

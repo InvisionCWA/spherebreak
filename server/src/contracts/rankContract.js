@@ -34,9 +34,9 @@ function toPublicRankDto(rank = {}) {
     colors: sanitizeColors(rank.colors),
     rating: Math.max(0, Math.round(sanitizeNumber(rank.rating, 1000))),
     threshold: Math.max(0, Math.round(sanitizeNumber(rank.threshold, 0))),
-    nextThreshold: rank.nextThreshold == null ? null : Math.max(0, Math.round(sanitizeNumber(rank.nextThreshold, 0))),
-    progressToNext: rank.progressToNext == null ? null : Math.max(0, Math.min(1, sanitizeNumber(rank.progressToNext, 0))),
-    nextRankName: rank.nextRankName == null ? null : sanitizeString(rank.nextRankName, null),
+    nextThreshold: rank.nextThreshold === null || rank.nextThreshold === undefined ? null : Math.max(0, Math.round(sanitizeNumber(rank.nextThreshold, 0))),
+    progressToNext: rank.progressToNext === null || rank.progressToNext === undefined ? null : Math.max(0, Math.min(1, sanitizeNumber(rank.progressToNext, 0))),
+    nextRankName: rank.nextRankName === null || rank.nextRankName === undefined ? null : sanitizeString(rank.nextRankName, null),
     isTopRank: Boolean(rank.isTopRank),
   };
 }
