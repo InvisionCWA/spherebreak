@@ -6,6 +6,7 @@ export default function GameScreen({ state, selfId, selected, onSelect, movePrev
   const self = state.players.find((p) => p.id === selfId);
   const activeId = state.currentTurnPlayerId;
   const isMyTurn = activeId === selfId;
+  const showHints = state.settings.beginnerHints !== false;
 
   const selectionOrder = Object.fromEntries(selected.map((id, index) => [id, index + 1]));
 
@@ -61,9 +62,9 @@ export default function GameScreen({ state, selfId, selected, onSelect, movePrev
 
       <CelestialPanel title="Turn HUD" subtitle={isMyTurn ? 'Your turn' : `Waiting for ${state.players.find((p) => p.id === activeId)?.displayName || 'player'}`}>
         <p>Timer: {Math.max(0, Math.ceil((state.turnEndsAt - Date.now()) / 1000))}s</p>
-        <p>Selected sum: {movePreview.sum}</p>
-        <p>Includes inner token: {movePreview.includesInner ? 'Yes' : 'No'}</p>
-        <p>Nearest multiple: {movePreview.nearestMultiple || 0}</p>
+        {showHints && <p>Selected sum: {movePreview.sum}</p>}
+        {showHints && <p>Includes inner token: {movePreview.includesInner ? 'Yes' : 'No'}</p>}
+        {showHints && <p>Nearest multiple: {movePreview.nearestMultiple || 0}</p>}
         <p>Selection status: {movePreview.isValid ? 'Valid Break' : 'Not valid yet'}</p>
 
         <button type="button" className="primary-btn" onClick={onSubmit} disabled={!isMyTurn || selected.length === 0}>Submit Move</button>

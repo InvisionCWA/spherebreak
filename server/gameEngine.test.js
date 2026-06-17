@@ -29,6 +29,8 @@ describe('rules engine', () => {
   test('validates move payload shape', () => {
     expect(validateMoveInput({ selectedTokenIds: [], nonce: 'n', boardVersion: 1 })).toContain('At least one token');
     expect(validateMoveInput({ selectedTokenIds: ['a'], nonce: 'n', boardVersion: 1 })).toBe(null);
+    expect(validateMoveInput({ selectedTokenIds: new Array(30).fill('a'), nonce: 'n', boardVersion: 1 })).toContain('Too many tokens');
+    expect(validateMoveInput({ selectedTokenIds: ['a'], nonce: 'bad nonce', boardVersion: 1 })).toContain('invalid characters');
   });
 
   test('requires inner token and multiple-of-target rule', () => {

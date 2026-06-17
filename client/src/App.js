@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import './App.css';
 import Landing from './screens/Landing';
@@ -30,7 +30,7 @@ export default function App() {
   });
 
   const [screen, setScreen] = useState('landing');
-  const [settings, setSettings] = useState({ ...DEFAULT_MATCH_SETTINGS, beginnerHints: true });
+  const [settings, setSettings] = useState({ ...DEFAULT_MATCH_SETTINGS });
   const [lobbyList, setLobbyList] = useState([]);
   const [gameState, setGameState] = useState(null);
   const [selectedTokenIds, setSelectedTokenIds] = useState([]);
@@ -40,6 +40,11 @@ export default function App() {
   const [weeklyLeaderboard, setWeeklyLeaderboard] = useState([]);
   const [profile, setProfile] = useState(null);
   const [notice, setNotice] = useState('');
+  const beginnerHintsRef = useRef(settings.beginnerHints);
+
+  useEffect(() => {
+    beginnerHintsRef.current = settings.beginnerHints;
+  }, [settings.beginnerHints]);
 
   useEffect(() => {
     const client = io(SERVER_URL);
@@ -83,7 +88,8 @@ export default function App() {
     });
 
     client.on('MOVE_REJECTED', ({ reason, preview }) => {
-      setMoveError(preview ? `${reason}. nearest multiple ${preview.nearestMultiple}` : reason);
+      const showHints = beginnerHintsRef.current !== false;
+      setMoveError(preview && showHints ? `${reason}. nearest multiple ${preview.nearestMultiple}` : reason);
     });
 
     client.on('REQUEST_ERROR', ({ error }) => {

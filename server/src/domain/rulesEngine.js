@@ -1,6 +1,8 @@
 'use strict';
 
 const crypto = require('crypto');
+const MAX_MOVE_SELECTION = 29;
+const MAX_NONCE_LENGTH = 64;
 
 function randomInt(min, max, random = Math.random) {
   return Math.floor(random() * (max - min + 1)) + min;
@@ -38,8 +40,12 @@ function listAllTokens(board) {
 function validateMoveInput(move) {
   if (!move || typeof move !== 'object') return 'Invalid move payload';
   if (!Array.isArray(move.selectedTokenIds) || move.selectedTokenIds.length === 0) return 'At least one token is required';
+  if (move.selectedTokenIds.length > MAX_MOVE_SELECTION) return 'Too many tokens selected';
+  if (move.selectedTokenIds.some((id) => typeof id !== 'string' || id.length > 80)) return 'Invalid token identifiers';
   if (new Set(move.selectedTokenIds).size !== move.selectedTokenIds.length) return 'Duplicate token selections are not allowed';
   if (!move.nonce || typeof move.nonce !== 'string') return 'Move nonce required';
+  if (move.nonce.length > MAX_NONCE_LENGTH) return 'Move nonce too long';
+  if (!/^[a-zA-Z0-9:_-]+$/.test(move.nonce)) return 'Move nonce has invalid characters';
   if (!Number.isInteger(move.boardVersion)) return 'Board version required';
   return null;
 }

@@ -2,6 +2,7 @@ export const DEFAULT_MATCH_SETTINGS = {
   turnLimit: 20,
   secondsPerTurn: 20,
   quotaToWin: 12,
+  beginnerHints: true,
   targetNumberRange: [1, 9],
   boardSize: { inner: 3, outer: 12 },
   maxPlayers: 2,
