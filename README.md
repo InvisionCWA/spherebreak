@@ -184,6 +184,12 @@ PORT=3001 REACT_APP_SERVER_URL=http://localhost:3000 npm start
 
 Open `http://localhost:3001`.
 
+Marketing site:
+
+- static files live in `marketing/`
+- production server route: `http://localhost:3000/marketing/`
+- primary play CTA points to `/`, which is the served game client route
+
 ## Run Tests
 
 Server tests:
