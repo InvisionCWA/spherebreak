@@ -8,7 +8,26 @@
   const playLinks = document.querySelectorAll('.play-link');
   const query = new URLSearchParams(window.location.search);
 
-  const configuredPlayUrl = query.get('play') || body.dataset.playUrl || '/';
+  function getSafePlayUrl(candidate) {
+    const fallback = body.dataset.playUrl || '/';
+    const value = typeof candidate === 'string' ? candidate.trim() : '';
+    if (!value) return fallback;
+
+    if (window.location.protocol === 'file:') {
+      return value.startsWith('/') && !value.startsWith('//') ? value : fallback;
+    }
+
+    try {
+      const parsed = new URL(value, window.location.origin);
+      if (parsed.origin !== window.location.origin) return fallback;
+      if (!/^https?:$/.test(parsed.protocol)) return fallback;
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch (_error) {
+      return fallback;
+    }
+  }
+
+  const configuredPlayUrl = getSafePlayUrl(query.get('play'));
   playLinks.forEach((link) => {
     link.setAttribute('href', configuredPlayUrl);
   });
@@ -199,18 +218,25 @@
     renderLoading(allTimeRoot);
     renderLoading(weeklyRoot);
 
-    try {
-      const [allTimeEntries, weeklyEntries] = await Promise.all([
-        fetchLeaderboard('all-time'),
-        fetchLeaderboard('weekly'),
-      ]);
+    const [allTimeResult, weeklyResult] = await Promise.allSettled([
+      fetchLeaderboard('all-time'),
+      fetchLeaderboard('weekly'),
+    ]);
 
-      renderAllTime(allTimeEntries);
-      renderWeekly(weeklyEntries);
-    } catch (_error) {
+    if (allTimeResult.status === 'fulfilled') {
+      renderAllTime(allTimeResult.value);
+    } else {
+      console.error('Failed to load all-time leaderboard:', allTimeResult.reason);
       renderError(allTimeRoot, 'The public ranked feed could not be loaded right now. Try refreshing again shortly.');
+    }
+
+    if (weeklyResult.status === 'fulfilled') {
+      renderWeekly(weeklyResult.value);
+    } else {
+      console.error('Failed to load weekly leaderboard:', weeklyResult.reason);
       renderError(weeklyRoot, 'Weekly standings are temporarily unavailable. No client-side writes were attempted.');
     }
+
   }
 
   if (refreshButton) {
