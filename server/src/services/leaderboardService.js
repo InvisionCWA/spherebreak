@@ -2,11 +2,11 @@
 
 const { getPrismaClient } = require('../db/client');
 
-async function ensureUser(prisma, userId, displayName) {
+async function ensureUser(prisma, userId, displayName, isBot = false) {
   return prisma.user.upsert({
     where: { id: userId },
-    update: { displayName },
-    create: { id: userId, displayName },
+    update: { displayName, isBot },
+    create: { id: userId, displayName, isBot },
   });
 }
 
@@ -18,13 +18,13 @@ async function updateLeaderboardFromMatch(match) {
   const prisma = getPrismaClient();
   if (!prisma) return;
 
-  const participants = [...match.players.values()].filter((player) => !player.isBot);
+  const participants = [...match.players.values()];
   const sorted = [...participants].sort((a, b) => b.score - a.score);
 
   const winnerId = sorted[0]?.id || null;
 
   for (const player of participants) {
-    await ensureUser(prisma, player.id, player.displayName);
+    await ensureUser(prisma, player.id, player.displayName, Boolean(player.isBot));
     const existing = await prisma.leaderboardStat.findUnique({ where: { userId: player.id } });
     const wins = existing?.wins || 0;
     const losses = existing?.losses || 0;
@@ -79,6 +79,7 @@ async function updateLeaderboardFromMatch(match) {
         create: sorted.map((player, index) => ({
           userId: player.id,
           displayName: player.displayName,
+          isBot: Boolean(player.isBot),
           score: player.score,
           combo: player.bestCombo,
           streak: player.bestStreak,
@@ -136,6 +137,7 @@ async function getLeaderboard({ period = 'all-time', limit = 50 } = {}) {
     rank: index + 1,
     userId: row.userId,
     displayName: row.user?.displayName || row.userId,
+    isBot: Boolean(row.user?.isBot),
     rating: row.rating,
     wins: row.wins,
     losses: row.losses,
@@ -161,6 +163,7 @@ async function getProfile(userId) {
   return {
     id: user.id,
     displayName: user.displayName,
+    isBot: Boolean(user.isBot),
     createdAt: user.createdAt,
     stats: stat || {
       rating: 1000,
