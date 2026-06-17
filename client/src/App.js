@@ -92,7 +92,7 @@ export default function App() {
     return () => {
       client.disconnect();
     };
-  }, []); // socket created once; CLIENT_HELLO re-sent on reconnect via 'connect' event
+  }, []); // socket created once; sessionRef.current used inside handlers to avoid stale closures
 
   useEffect(() => {
     if (!socket) return undefined;

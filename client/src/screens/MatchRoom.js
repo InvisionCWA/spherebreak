@@ -36,7 +36,7 @@ export default function MatchRoom({ state, onReady, readySelf, onBack }) {
           ))}
         </ul>
         {isStarting ? (
-          <p aria-live="polite" className="countdown-text">Starting in {countdown}...</p>
+          <p aria-live="polite" aria-label={`Match starting in ${countdown} seconds`} className="countdown-text">Starting in {countdown}...</p>
         ) : (
           <div className="row-actions">
             <button type="button" className="primary-btn" onClick={() => onReady(!readySelf)}>

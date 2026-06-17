@@ -330,7 +330,7 @@ flowchart TD
 
 
 
-See `/home/runner/work/spherebreak/spherebreak/docs/assets.md`.
+See `docs/assets.md`.
 
 All included visuals are original SVG assets created for this repository.
 

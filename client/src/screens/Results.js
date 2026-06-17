@@ -4,7 +4,7 @@ import CelestialPanel from '../components/ui/CelestialPanel';
 export default function Results({ state, onRematch, onExit }) {
   const sorted = [...state.players].sort((a, b) => b.score - a.score);
   const winner = state.winnerId
-    ? state.players.find((p) => p.id === state.winnerId)
+    ? (state.players.find((p) => p.id === state.winnerId) ?? sorted[0])
     : sorted[0];
 
   return (
