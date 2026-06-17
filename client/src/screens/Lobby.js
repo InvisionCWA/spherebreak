@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import CelestialPanel from '../components/ui/CelestialPanel';
+import PlayerIdentity from '../components/ui/PlayerIdentity';
 
 export default function Lobby({ lobbyList, onCreate, onJoin, onQueue, onBack }) {
   const [joinCode, setJoinCode] = useState('');
@@ -45,9 +46,23 @@ export default function Lobby({ lobbyList, onCreate, onJoin, onQueue, onBack }) 
                 <div>
                   <strong>{match.code}</strong>
                   <small>{match.mode}</small>
+                  <ul className="lobby-player-list" aria-label={`Players in lobby ${match.code}`}>
+                    {match.players.map((player) => (
+                      <li key={player.id}>
+                        <PlayerIdentity
+                          displayName={player.displayName}
+                          playerRank={player.playerRank}
+                          isBot={player.isBot}
+                          meta={player.ready ? 'Ready' : 'Waiting'}
+                        />
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <div>{match.players.length}/{match.maxPlayers}</div>
-                <button type="button" className="secondary-btn" onClick={() => onJoin(match.code)}>Join</button>
+                <div className="lobby-list__actions">
+                  <div>{match.players.length}/{match.maxPlayers}</div>
+                  <button type="button" className="secondary-btn" onClick={() => onJoin(match.code)}>Join</button>
+                </div>
               </li>
             ))}
           </ul>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import CelestialPanel from '../components/ui/CelestialPanel';
+import PlayerIdentity from '../components/ui/PlayerIdentity';
 
 function useCountdown(endsAt) {
   const [secondsLeft, setSecondsLeft] = useState(() => Math.max(0, Math.ceil(((endsAt || 0) - Date.now()) / 1000)));
@@ -42,7 +43,12 @@ export default function MatchRoom({ state, onReady, readySelf, onBack }) {
         <ul className="player-list" aria-label="Players in match room">
           {state.players.map((player) => (
             <li key={player.id}>
-              <span>{player.displayName}{player.isBot ? ' (Bot)' : ''}</span>
+              <PlayerIdentity
+                displayName={player.displayName}
+                playerRank={player.playerRank}
+                isBot={player.isBot}
+                meta={player.ready ? 'Ready' : 'Not ready'}
+              />
               <span className={player.ready ? 'ready-yes' : 'ready-no'}>{player.ready ? 'Ready' : 'Not ready'}</span>
             </li>
           ))}

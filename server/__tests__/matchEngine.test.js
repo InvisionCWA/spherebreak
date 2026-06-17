@@ -346,6 +346,29 @@ describe('matchEngine: getPublicState', () => {
     }
   });
 
+  test('includes provided trusted rank dto without exposing internal stats fields', () => {
+    const match = makeActiveMatch();
+    const state = getPublicState(match, 'p1', {
+      p1: { displayName: 'Nova', shortLabel: 'NOV' },
+      p2: { displayName: 'Comet', shortLabel: 'COM' },
+    });
+
+    expect(state.players.find((player) => player.id === 'p1').playerRank).toEqual({ displayName: 'Nova', shortLabel: 'NOV' });
+    expect(state.players.find((player) => player.id === 'p2').playerRank).toEqual({ displayName: 'Comet', shortLabel: 'COM' });
+  });
+
+  test('client-supplied rank-like fields on player objects are ignored', () => {
+    const match = makeActiveMatch();
+    const player = match.players.get('p1');
+    player.rating = 9999;
+    player.playerRank = { displayName: 'Fake' };
+
+    const state = getPublicState(match, 'p1');
+
+    expect(state.players.find((entry) => entry.id === 'p1').playerRank).toBeNull();
+    expect(state.players.find((entry) => entry.id === 'p1').rating).toBeUndefined();
+  });
+
   test('turnsLeft decreases correctly after valid moves', () => {
     const match = makeActiveMatch({ turnLimit: 10 });
     const stateAtStart = getPublicState(match, 'p1');

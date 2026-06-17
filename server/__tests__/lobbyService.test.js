@@ -1,10 +1,21 @@
 'use strict';
 
+const mockPrisma = {
+  leaderboardStat: {
+    findMany: jest.fn(),
+  },
+};
+
+jest.mock('../src/db/client', () => ({
+  getPrismaClient: () => mockPrisma,
+}));
+
 const { LobbyService } = require('../src/services/lobbyService');
 
 describe('lobby service', () => {
   afterEach(() => {
     jest.useRealTimers();
+    mockPrisma.leaderboardStat.findMany.mockReset().mockResolvedValue([]);
   });
 
   function activateMatch(lobby, match) {
@@ -237,6 +248,43 @@ describe('lobby service', () => {
     expect(result?.ok).toBe(true);
     expect(result?.moveResult?.playerId).toBe(bot.id);
     expect(match.board.version).toBeGreaterThan(1);
+  });
+
+  test('public match state resolves trusted ranks server-side', async () => {
+    mockPrisma.leaderboardStat.findMany.mockResolvedValue([
+      { userId: 'p1', rating: 1450, wins: 8, losses: 1 },
+      { userId: 'p2', rating: 980, wins: 1, losses: 3 },
+    ]);
+
+    const lobby = new LobbyService();
+    const p1 = lobby.createOrResumeSession({ playerId: 'p1', displayName: 'One', socketId: 's1' });
+    const p2 = lobby.createOrResumeSession({ playerId: 'p2', displayName: 'Two', socketId: 's2' });
+
+    const match = lobby.createMatch({ hostPlayerId: p1.playerId, displayName: 'One', settings: {}, mode: 'ranked' });
+    lobby.joinMatch({ code: match.code, playerId: p2.playerId, displayName: 'Two', socketId: 's2' });
+
+    const state = await lobby.getPublicStateForPlayer(p1.playerId);
+
+    expect(state.players.find((player) => player.id === 'p1').playerRank.displayName).toBe('Astral');
+    expect(state.players.find((player) => player.id === 'p2').playerRank.displayName).toBe('Comet');
+  });
+
+  test('open lobby payloads include rank dto for CPU fallback and humans', async () => {
+    mockPrisma.leaderboardStat.findMany.mockResolvedValue([
+      { userId: 'p1', rating: 1210, wins: 4, losses: 1 },
+    ]);
+
+    const lobby = new LobbyService();
+    const p1 = lobby.createOrResumeSession({ playerId: 'p1', displayName: 'One', socketId: 's1' });
+    const match = lobby.createMatch({ hostPlayerId: p1.playerId, displayName: 'One', settings: { ranked: true }, mode: 'ranked' });
+    lobby.joinMatch({ code: match.code, playerId: p1.playerId, displayName: 'One', socketId: 's1' });
+    lobby.injectCpuFallback(match.id);
+
+    const lobbies = await lobby.buildLobbyList();
+    const players = lobbies[0].players;
+
+    expect(players.find((player) => player.id === 'p1').playerRank.displayName).toBe('Nova');
+    expect(players.find((player) => player.isBot).playerRank.displayName).toBe('Lumen');
   });
 
   test('human reconnect behavior remains intact with CPU fallback matches', () => {

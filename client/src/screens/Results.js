@@ -1,5 +1,6 @@
 import React from 'react';
 import CelestialPanel from '../components/ui/CelestialPanel';
+import PlayerIdentity from '../components/ui/PlayerIdentity';
 
 export default function Results({ state, onRematch, onExit }) {
   const sorted = [...state.players].sort((a, b) => b.score - a.score);
@@ -9,11 +10,27 @@ export default function Results({ state, onRematch, onExit }) {
 
   return (
     <div className="screen-center">
-      <CelestialPanel title="Match Results" subtitle={winner ? `Winner: ${winner.displayName}` : 'Match ended'}>
+      <CelestialPanel title="Match Results" subtitle="Final standings">
+        {winner && (
+          <div className="results-winner">
+            <span className="results-winner__label">Winner</span>
+            <PlayerIdentity
+              displayName={winner.displayName}
+              playerRank={winner.playerRank}
+              isBot={winner.isBot}
+              meta={winner.id === state.winnerId ? 'Server verified' : 'Highest score'}
+            />
+          </div>
+        )}
         <ul className="leaderboard-list" aria-label="Final standings">
           {sorted.map((player, index) => (
             <li key={player.id} className={player.id === state.winnerId ? 'winner-row' : ''}>
-              <span>{index + 1}. {player.displayName}{player.isBot ? ' (Bot)' : ''}{player.id === state.winnerId ? ' - Winner' : ''}</span>
+              <PlayerIdentity
+                displayName={`${index + 1}. ${player.displayName}${player.id === state.winnerId ? ' - Winner' : ''}`}
+                playerRank={player.playerRank}
+                isBot={player.isBot}
+                meta={`${player.score} pts`}
+              />
               <span>{player.score} pts</span>
             </li>
           ))}

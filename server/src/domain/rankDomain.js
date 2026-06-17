@@ -72,6 +72,7 @@ function sanitizeCount(value) {
 }
 
 function sanitizeRating(value) {
+  if (value === null || value === undefined || value === '') return null;
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return null;
   return Math.max(0, Math.round(parsed));

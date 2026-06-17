@@ -102,11 +102,31 @@ Tracked stats include:
 - weekly ranked scores
 - all-time ranked scores
 
+### Celestial rank badges
+
+Spherebreak exposes a server-authored rank badge anywhere player identities appear. The badge is decorative, but the underlying rank DTO is trusted server output and includes the current tier, short code, icon, colors, and progression toward the next tier when applicable.
+
+Current ladder:
+
+- Comet
+- Lumen
+- Nova
+- Astral
+
+High-level formula:
+
+- trusted `LeaderboardStat.rating` is the primary rank input
+- if a player has malformed or missing rating data, the server falls back to a deterministic estimate using persisted wins and losses (`1000 + wins*20 - losses*10`)
+- fallback promotion is capped below Nova until a player has at least 3 recorded ranked matches, which keeps early data from over-promoting accounts
+- top-rank players do not receive next-rank progress fields
+
 Rules:
 
 - only server-completed ranked matches update ranked leaderboard stats
 - casual matches do not affect ranked leaderboard standings
-- server-generated CPU opponents are persisted as bot users when ranked matches complete
+- clients cannot write rank or trusted stat fields; socket and HTTP responses always recompute rank server-side
+- server-generated CPU opponents use persisted ranked stats when available; otherwise they render with the neutral fallback rank
+- rank badges always include text labels and compact non-color cues for accessibility, and long names truncate safely on mobile widths
 
 ## Tech Stack
 
@@ -376,7 +396,10 @@ flowchart TD
     D --> E[Upsert leaderboard stats]
     E --> F[Persist match record]
     F --> G[Persist replay events]
+    G --> H[Recompute public rank DTO from trusted persisted stats]
 ```
+
+Rank DTOs are attached to leaderboard rows, profile responses, open lobby payloads, and live/public player state. Clients render them but never author them.
 
 ## CPU Fallback Lifecycle
 
