@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="ftitle fdesc">
+  <title id="ftitle">Celestial Break</title>
+  <desc id="fdesc">A glowing celestial orb with orbit rings representing the Celestial Break game.</desc>
+  <defs>
+    <radialGradient id="forb" cx="34%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#ffe8ff" />
+      <stop offset="30%" stop-color="#4dddff" />
+      <stop offset="62%" stop-color="#9b6dff" />
+      <stop offset="100%" stop-color="#06091e" />
+    </radialGradient>
+    <radialGradient id="fglow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#9b6dff" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#9b6dff" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#090b1d" />
+  <circle cx="64" cy="64" r="54" fill="url(#fglow)" />
+  <circle cx="64" cy="64" r="46" fill="none" stroke="#2c4a8c" stroke-width="2.5" opacity="0.7" />
+  <circle cx="64" cy="64" r="30" fill="none" stroke="#9b6dff" stroke-width="2" opacity="0.75" />
+  <circle cx="64" cy="64" r="20" fill="url(#forb)" />
+  <circle cx="27" cy="64" r="7" fill="#4dddff" opacity="0.92" />
+  <circle cx="101" cy="64" r="7" fill="#ffd166" opacity="0.92" />
+</svg>

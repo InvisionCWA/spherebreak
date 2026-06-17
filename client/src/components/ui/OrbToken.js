@@ -7,11 +7,14 @@ export default function OrbToken({ token, selected, selectionIndex, onClick, dis
       className={`orb-token zone-${token.zone}${selected ? ' selected' : ''}`}
       onClick={onClick}
       disabled={disabled}
-      aria-label={`${token.zone} token value ${token.value}`}
+      aria-pressed={selected}
+      aria-label={`${token.zone} token, value ${token.value}${selected ? `, selected position ${selectionIndex}` : ''}`}
     >
-      <span className="orb-value">{token.value}</span>
-      <span className="orb-zone">{token.zone}</span>
-      {selected && <span className="selection-index">{selectionIndex}</span>}
+      <span className="orb-value" aria-hidden="true">{token.value}</span>
+      <span className="orb-zone" aria-hidden="true">{token.zone}</span>
+      {selected && (
+        <span className="selection-index" aria-hidden="true">{selectionIndex}</span>
+      )}
     </button>
   );
 }
