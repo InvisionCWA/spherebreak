@@ -41,7 +41,8 @@ function validateMoveInput(move) {
   if (!move || typeof move !== 'object') return 'Invalid move payload';
   if (!Array.isArray(move.selectedTokenIds) || move.selectedTokenIds.length === 0) return 'At least one token is required';
   if (move.selectedTokenIds.length > MAX_MOVE_SELECTION) return 'Too many tokens selected';
-  if (move.selectedTokenIds.some((id) => typeof id !== 'string' || id.length > 80)) return 'Invalid token identifiers';
+  if (move.selectedTokenIds.some((id) => typeof id !== 'string')) return 'Token IDs must be strings';
+  if (move.selectedTokenIds.some((id) => id.length > 80)) return 'Token ID exceeds maximum length of 80 characters';
   if (new Set(move.selectedTokenIds).size !== move.selectedTokenIds.length) return 'Duplicate token selections are not allowed';
   if (!move.nonce || typeof move.nonce !== 'string') return 'Move nonce required';
   if (move.nonce.length > MAX_NONCE_LENGTH) return 'Move nonce too long';
