@@ -80,7 +80,8 @@ test.describe('Game UI — keyboard and accessibility', () => {
     await page.goto('/');
     await page.getByRole('button', { name: /start|play|begin/i }).first().click();
     await page.getByRole('button', { name: /lobby/i }).first().click();
-    await page.getByRole('button', { name: /quick queue/i }).click();
+    await page.getByPlaceholder(/Enter 6-character code/i).fill('ZZZZZZ');
+    await page.getByRole('button', { name: /join match/i }).click();
     await expect(page.locator('.notice-banner')).toHaveAttribute('aria-live', 'polite');
   });
 });

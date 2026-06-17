@@ -35,7 +35,7 @@ test.describe('Landing & navigation', () => {
 
   test('top-bar Menu button returns to main menu from tutorial', async ({ page }) => {
     await page.getByRole('button', { name: /tutorial/i }).click();
-    await page.getByRole('button', { name: /menu/i }).click();
+    await page.locator('.top-bar').getByRole('button', { name: /^Menu$/i }).click();
     await expect(page.getByText(/Player Session/i)).toBeVisible();
   });
 
