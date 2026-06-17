@@ -49,9 +49,7 @@ function validateMoveInput(move) {
   if (new Set(move.selectedTokenIds).size !== move.selectedTokenIds.length) return 'Duplicate token selections are not allowed';
   if (!move.nonce || typeof move.nonce !== 'string') return 'Move nonce required';
   if (move.nonce.length > MAX_NONCE_LENGTH) return 'Move nonce too long';
-  if (!/^[a-zA-Z0-9:_-]+$/.test(move.nonce)) {
-    return 'Move nonce must contain only alphanumeric characters, colons, underscores, and hyphens';
-  }
+  if (!/^[a-zA-Z0-9:_-]+$/.test(move.nonce)) return 'Invalid move nonce format';
   if (!Number.isInteger(move.boardVersion)) return 'Board version required';
   return null;
 }

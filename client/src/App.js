@@ -97,7 +97,7 @@ export default function App() {
   useEffect(() => {
     if (!socket) return undefined;
     const handleMoveRejected = ({ reason, preview }) => {
-      const showHints = settings.beginnerHints !== false;
+      const showHints = settings.beginnerHints ?? true;
       setMoveError(preview && showHints ? `${reason}. nearest multiple ${preview.nearestMultiple}` : reason);
     };
     socket.on('MOVE_REJECTED', handleMoveRejected);

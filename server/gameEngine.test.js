@@ -31,7 +31,7 @@ describe('rules engine', () => {
     expect(validateMoveInput({ selectedTokenIds: ['a'], nonce: 'n', boardVersion: 1 })).toBe(null);
     const oversizedSelection = Array.from({ length: 30 }, (_, index) => `token-${index}`);
     expect(validateMoveInput({ selectedTokenIds: oversizedSelection, nonce: 'n', boardVersion: 1 })).toBe('Too many tokens selected');
-    expect(validateMoveInput({ selectedTokenIds: ['a'], nonce: 'bad nonce', boardVersion: 1 })).toBe('Move nonce must contain only alphanumeric characters, colons, underscores, and hyphens');
+    expect(validateMoveInput({ selectedTokenIds: ['a'], nonce: 'bad nonce', boardVersion: 1 })).toBe('Invalid move nonce format');
     expect(validateMoveInput({ selectedTokenIds: ['a'], nonce: 'n'.repeat(65), boardVersion: 1 })).toBe('Move nonce too long');
   });
 
