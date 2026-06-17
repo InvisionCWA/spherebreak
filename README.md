@@ -252,19 +252,34 @@ Any match that is in progress when the container stops will be lost. Players can
 
 ### First-time Portainer stack deployment
 
-1. Build the image on your Docker host:
+**Option A — local image (simplest):**
+
+1. Build the image on the same Docker host where Portainer runs:
    ```bash
    docker compose build
    ```
-   This creates the `spherebreak:latest` image locally.
+   This creates and tags `spherebreak:latest` locally.
 
-2. In Portainer, go to **Stacks → Add stack**.
+2. In Portainer, go to **Stacks → Add stack**, paste the contents of `docker-compose.yml`, and click **Deploy the stack**.
 
-3. Paste the contents of `docker-compose.yml` into the web editor (or point Portainer at the repository).
+**Option B — registry-based (recommended for teams):**
 
-4. Click **Deploy the stack**.
+1. Build, tag, and push to a container registry:
+   ```bash
+   docker compose build
+   docker tag spherebreak:latest yourregistry/spherebreak:v1.0.0
+   docker push yourregistry/spherebreak:v1.0.0
+   ```
 
-Portainer will start the container. On the first boot the entrypoint initialises the database schema automatically. The app is available on port `3000`.
+2. Update the `image:` field in `docker-compose.yml` to `yourregistry/spherebreak:v1.0.0`.
+
+3. In Portainer, go to **Stacks → Add stack**, paste the updated `docker-compose.yml`, and click **Deploy the stack**. Portainer will pull the image from the registry.
+
+**Option C — Git repository:**
+
+Portainer can deploy directly from a Git repository (Business Edition). Point it at the repository URL and set the compose file path to `docker-compose.yml`.
+
+On first boot the entrypoint initialises the database schema automatically. The app is available on port `3000`.
 
 ### Updating the app
 

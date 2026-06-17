@@ -5,4 +5,4 @@ set -e
 cd /app/server
 ./node_modules/.bin/prisma db push --skip-generate
 
-exec node index.js
+exec node /app/server/index.js

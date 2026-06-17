@@ -12,8 +12,8 @@ FROM node:20-alpine
 WORKDIR /app
 
 COPY server/package*.json ./server/
-# Install all deps (includes prisma CLI needed for db push at startup).
-RUN cd server && npm ci
+# Install production deps then add prisma CLI (needed for db push at startup).
+RUN cd server && npm ci --omit=dev && npm install --no-save prisma
 
 COPY server/ ./server/
 COPY --from=client-build /app/client/build ./client/build
