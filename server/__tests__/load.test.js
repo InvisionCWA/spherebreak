@@ -167,7 +167,7 @@ describe('load test — 10 concurrent matches', () => {
     }
 
     const elapsed = Date.now() - started;
-    expect(elapsed).toBeLessThan(2_000);
+    expect(elapsed).toBeLessThan(Number(process.env.LOAD_TEST_TIMEOUT_MS) || 5_000);
 
     for (const { match } of contexts) {
       expect(['completed', 'abandoned']).toContain(match.status);

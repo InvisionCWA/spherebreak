@@ -1,5 +1,5 @@
 {
-  "name": "spherebreak-e2e",
+  "name": "celestial-break-e2e",
   "version": "1.0.0",
   "private": true,
   "description": "Playwright end-to-end tests for Celestial Break",
