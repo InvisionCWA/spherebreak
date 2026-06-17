@@ -1020,6 +1020,23 @@ body {
   margin: 0;
 }
 
+.landing-hero-btn {
+  min-width: 200px;
+}
+
+.landing-legal {
+  text-align: center;
+  margin-top: 16px;
+}
+
+/* Reusable gradient text */
+.gradient-text {
+  background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 55%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 /* Board panel heading */
 .board-panel h4 {
   margin: 14px 0 8px;

@@ -3,12 +3,7 @@ import React from 'react';
 export default function GameLogo({ size = 28, showText = true }) {
   return (
     <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '10px',
-        textDecoration: 'none',
-      }}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}
       aria-label="Celestial Break"
     >
       <svg
@@ -36,15 +31,8 @@ export default function GameLogo({ size = 28, showText = true }) {
       </svg>
       {showText && (
         <span
-          style={{
-            fontWeight: 800,
-            fontSize: '1.2rem',
-            letterSpacing: '0.07em',
-            background: 'linear-gradient(90deg, #4dddff 0%, #9b6dff 55%, #ffd166 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}
+          className="gradient-text"
+          style={{ fontWeight: 800, fontSize: '1.2rem', letterSpacing: '0.07em' }}
         >
           Celestial Break
         </span>

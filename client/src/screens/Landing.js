@@ -17,11 +17,11 @@ export default function Landing({ onStart }) {
           <p className="landing-hero-sub">
             Break the target. Build the combo. Race the quota.
           </p>
-          <button type="button" className="primary-btn" onClick={onStart} style={{ minWidth: 200 }}>
-            Enter the Arena
+          <button type="button" className="primary-btn landing-hero-btn" onClick={onStart}>
+            Start Game
           </button>
         </div>
-        <p className="legal-note" style={{ textAlign: 'center', marginTop: 16 }}>
+        <p className="legal-note landing-legal">
           An original competitive number-puzzle game. No third-party copyrighted assets are used.
         </p>
       </CelestialPanel>
