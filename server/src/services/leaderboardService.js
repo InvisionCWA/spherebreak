@@ -42,6 +42,7 @@ async function updateLeaderboardFromMatch(match) {
         rating: 1000 + (didWin ? 20 : -10),
         wins: didWin ? 1 : 0,
         losses: didWin ? 0 : 1,
+        winRate: didWin ? 1 : 0,
         bestScore: player.score,
         bestCombo: player.bestCombo,
         bestStreak: player.bestStreak,
