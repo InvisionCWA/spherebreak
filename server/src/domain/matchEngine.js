@@ -46,7 +46,7 @@ function createMatch({ code, hostPlayer, settings, mode = 'casual', botDifficult
   return match;
 }
 
-function addPlayer(match, { id, displayName, socketId, isBot = false, ready = false, connected = true }) {
+function addPlayer(match, { id, displayName, socketId, isBot = false, ready = false, connected = true, botDifficulty = null }) {
   if (match.players.size >= match.settings.maxPlayers) {
     throw new Error('Match full');
   }
@@ -64,6 +64,7 @@ function addPlayer(match, { id, displayName, socketId, isBot = false, ready = fa
     isBot,
     ready,
     connected,
+    botDifficulty,
     score: 0,
     combo: 0,
     streak: 0,

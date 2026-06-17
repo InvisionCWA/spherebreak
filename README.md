@@ -58,6 +58,7 @@ Features:
 - Reconnect support by persisted player id
 - Rematch request
 - Bot practice mode (easy, normal, hard)
+- Automatic CPU fallback for waiting multiplayer matches after 60 seconds
 
 ## Anti-Cheat Model
 
@@ -105,6 +106,7 @@ Rules:
 
 - only server-completed ranked matches update ranked leaderboard stats
 - casual matches do not affect ranked leaderboard standings
+- server-generated CPU opponents are persisted as bot users when ranked matches complete
 
 ## Tech Stack
 

@@ -15,17 +15,23 @@ const {
 } = require('../domain/matchEngine');
 const { normalizeSettings, sanitizeDisplayName, MATCH_STATUS } = require('../contracts/gameTypes');
 const { AntiCheat } = require('../domain/antiCheat');
-const { pickBotMove } = require('../domain/botEngine');
+const { pickBotMove, getBotThinkDelayMs, generateBotHandle } = require('../domain/botEngine');
 const { updateLeaderboardFromMatch } = require('./leaderboardService');
 const { addReplayEvent } = require('./replayService');
 
 class LobbyService {
-  constructor() {
+  constructor(options = {}) {
     this.matches = new Map();
     this.playerToMatch = new Map();
     this.socketToPlayer = new Map();
     this.queue = [];
     this.antiCheat = new AntiCheat();
+    this.random = typeof options.random === 'function' ? options.random : Math.random;
+    this.cpuFallbackMs = Number.isFinite(options.cpuFallbackMs) ? options.cpuFallbackMs : 60000;
+    this.setTimeoutFn = options.setTimeoutFn || setTimeout;
+    this.clearTimeoutFn = options.clearTimeoutFn || clearTimeout;
+    this.waitingCpuTimers = new Map();
+    this.pendingBotTurns = new Map();
   }
 
   createOrResumeSession({ playerId, displayName, socketId }) {
@@ -50,6 +56,7 @@ class LobbyService {
 
     this.matches.set(match.id, match);
     this.playerToMatch.set(hostPlayerId, match.id);
+    this.refreshWaitingCpuFallback(match);
     return match;
   }
 
@@ -107,6 +114,7 @@ class LobbyService {
     });
 
     this.playerToMatch.set(playerId, match.id);
+    this.refreshWaitingCpuFallback(match);
     return { match, player };
   }
 
@@ -134,6 +142,7 @@ class LobbyService {
       match.countdownEndsAt = Date.now() + 3000;
     }
 
+    this.refreshWaitingCpuFallback(match);
     return match;
   }
 
@@ -144,6 +153,7 @@ class LobbyService {
     for (const match of this.matches.values()) {
       if (match.status === MATCH_STATUS.STARTING && now >= match.countdownEndsAt) {
         startMatch(match);
+        this.refreshWaitingCpuFallback(match);
         started.push(match);
       }
     }
@@ -166,19 +176,24 @@ class LobbyService {
   processMove({ playerId, move }) {
     const match = this.getMatchForPlayer(playerId);
     if (!match) return { ok: false, reason: 'Match not found' };
+    return this.processMoveOnMatch({ match, playerId, move, enforceAntiCheat: true });
+  }
 
-    if (!this.antiCheat.checkRateLimit(playerId, 'SUBMIT_MOVE', 30, 4000)) {
-      this.antiCheat.flag(match, playerId, 'request_flooding');
-      return { ok: false, reason: 'Too many move requests', suspicious: true };
-    }
+  processMoveOnMatch({ match, playerId, move, enforceAntiCheat }) {
+    if (enforceAntiCheat) {
+      if (!this.antiCheat.checkRateLimit(playerId, 'SUBMIT_MOVE', 30, 4000)) {
+        this.antiCheat.flag(match, playerId, 'request_flooding');
+        return { ok: false, reason: 'Too many move requests', suspicious: true, match };
+      }
 
-    if (!this.antiCheat.registerNonce(match.id, playerId, move.nonce)) {
-      this.antiCheat.flag(match, playerId, 'duplicate_nonce');
-      return { ok: false, reason: 'Duplicate move nonce', suspicious: true };
+      if (!this.antiCheat.registerNonce(match.id, playerId, move.nonce)) {
+        this.antiCheat.flag(match, playerId, 'duplicate_nonce');
+        return { ok: false, reason: 'Duplicate move nonce', suspicious: true, match };
+      }
     }
 
     const result = processMove(match, playerId, move);
-    if (!result.ok && result.suspicious) {
+    if (!result.ok && result.suspicious && enforceAntiCheat) {
       this.antiCheat.flag(match, playerId, result.reason.toLowerCase().replace(/\s+/g, '_'));
     }
 
@@ -210,23 +225,49 @@ class LobbyService {
   }
 
   async maybeRunBotTurn(match) {
-    if (!match || match.status !== MATCH_STATUS.ACTIVE || !match.botDifficulty) return null;
+    if (!match || match.status !== MATCH_STATUS.ACTIVE) {
+      if (match) this.pendingBotTurns.delete(match.id);
+      return null;
+    }
     const current = getCurrentPlayer(match);
     if (!current || !current.isBot) return null;
 
-    const botMove = pickBotMove(match.board, match.botDifficulty);
-    if (!botMove) {
-      applyTurnTimeout(match, current.id);
-      return { timeout: true };
+    const turnKey = `${match.id}:${match.turnCount}:${current.id}:${match.board.version}`;
+    const botDifficulty = current.botDifficulty || match.botDifficulty || 'normal';
+    const pending = this.pendingBotTurns.get(match.id);
+    if (!pending || pending.turnKey !== turnKey) {
+      this.pendingBotTurns.set(match.id, {
+        turnKey,
+        executeAt: Date.now() + getBotThinkDelayMs({
+          secondsPerTurn: match.settings.secondsPerTurn,
+          difficulty: botDifficulty,
+          random: this.random,
+        }),
+      });
+      return null;
     }
 
-    return this.processMove({
+    if (Date.now() < pending.executeAt) {
+      return null;
+    }
+
+    this.pendingBotTurns.delete(match.id);
+
+    const botMove = pickBotMove(match.board, botDifficulty, this.random);
+    if (!botMove) {
+      applyTurnTimeout(match, current.id);
+      return { timeout: true, match };
+    }
+
+    return this.processMoveOnMatch({
+      match,
       playerId: current.id,
       move: {
         selectedTokenIds: botMove.selectedTokenIds,
-        nonce: `bot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        nonce: `bot-${Date.now()}-${this.random().toString(36).slice(2, 8)}`,
         boardVersion: match.board.version,
       },
+      enforceAntiCheat: false,
     });
   }
 
@@ -281,7 +322,85 @@ class LobbyService {
       completeMatch(match, 'abandoned');
     }
 
+    this.refreshWaitingCpuFallback(match);
     return { match, playerId };
+  }
+
+  countHumans(match) {
+    return Array.from(match.players.values()).filter((player) => !player.isBot).length;
+  }
+
+  needsWaitingCpuFallback(match) {
+    if (!match || match.status !== MATCH_STATUS.WAITING) return false;
+    if (this.countHumans(match) !== 1) return false;
+    if (match.players.size >= match.settings.maxPlayers) return false;
+    return !Array.from(match.players.values()).some((player) => player.isBot);
+  }
+
+  refreshWaitingCpuFallback(match) {
+    if (!match) return;
+    const existing = this.waitingCpuTimers.get(match.id);
+
+    if (this.needsWaitingCpuFallback(match)) {
+      if (existing) return;
+      const timer = this.setTimeoutFn(() => {
+        this.waitingCpuTimers.delete(match.id);
+        this.injectCpuFallback(match.id);
+      }, this.cpuFallbackMs);
+      this.waitingCpuTimers.set(match.id, timer);
+      return;
+    }
+
+    if (existing) {
+      this.clearTimeoutFn(existing);
+      this.waitingCpuTimers.delete(match.id);
+    }
+  }
+
+  injectCpuFallback(matchId) {
+    const match = this.matches.get(matchId);
+    if (!match || !this.needsWaitingCpuFallback(match)) return null;
+
+    const profile = this.generateCpuProfile();
+    const botPlayer = addPlayer(match, {
+      id: profile.id,
+      displayName: profile.displayName,
+      isBot: true,
+      ready: true,
+      connected: true,
+      botDifficulty: 'normal',
+    });
+
+    this.playerToMatch.set(botPlayer.id, match.id);
+    addReplayEvent(match, 'cpu_fallback_joined', { playerId: botPlayer.id, displayName: botPlayer.displayName });
+
+    if (canStart(match)) {
+      match.status = MATCH_STATUS.STARTING;
+      match.countdownEndsAt = Date.now() + 3000;
+    }
+
+    this.refreshWaitingCpuFallback(match);
+    return botPlayer;
+  }
+
+  generateCpuProfile() {
+    const maxAttempts = 20;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const displayName = generateBotHandle(this.random);
+      const id = `cpu-${displayName.toLowerCase()}`;
+      const existingMatchId = this.playerToMatch.get(id);
+      if (!existingMatchId) return { id, displayName };
+      const existingMatch = this.matches.get(existingMatchId);
+      if (!existingMatch || existingMatch.status === MATCH_STATUS.COMPLETED || existingMatch.status === MATCH_STATUS.ABANDONED) {
+        return { id, displayName };
+      }
+    }
+
+    const fallback = generateBotHandle(this.random);
+    return {
+      id: `cpu-${fallback.toLowerCase()}-${crypto.randomUUID().slice(0, 6)}`,
+      displayName: fallback,
+    };
   }
 }
 
