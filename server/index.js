@@ -5,14 +5,13 @@ const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
-const {
-  createGame,
-  handleMove,
-  handleTimerExpiry,
-  TURN_TIMER_SECONDS,
-} = require('./gameEngine');
+const { LobbyService } = require('./src/services/lobbyService');
+const { getLeaderboard, getProfile } = require('./src/services/leaderboardService');
+const { MATCH_STATUS } = require('./src/contracts/gameTypes');
 
 const app = express();
+app.use(express.json());
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -22,146 +21,200 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 3000;
+const lobby = new LobbyService();
 
-// Rate limiter for HTTP routes (static files / SPA fallback)
 const httpLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 200,            // max 200 requests per IP per minute
+  windowMs: 60 * 1000,
+  max: 300,
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// Serve static React build
 app.use(httpLimiter);
+
+app.get('/api/health', (_req, res) => {
+  res.json({ ok: true, service: 'celestial-break-server' });
+});
+
+app.get('/api/leaderboard', async (req, res) => {
+  const period = String(req.query.period || 'all-time');
+  const rows = await getLeaderboard({ period });
+  res.json({ period, entries: rows });
+});
+
+app.get('/api/profile/:id', async (req, res) => {
+  const profile = await getProfile(req.params.id);
+  if (!profile) {
+    res.status(404).json({ error: 'Profile not found' });
+    return;
+  }
+  res.json(profile);
+});
+
 app.use(express.static(path.join(__dirname, '..', 'client', 'build')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'client', 'build', 'index.html'));
 });
 
-// rooms: Map<roomId, { state, players: string[], timerInterval }>
-const rooms = new Map();
-
-function broadcastState(roomId) {
-  const room = rooms.get(roomId);
-  if (!room) return;
-  io.to(roomId).emit('GAME_STATE_UPDATE', { state: room.state });
+function emitState(match) {
+  for (const player of match.players.values()) {
+    if (!player.socketId) continue;
+    io.to(player.socketId).emit('GAME_STATE_UPDATE', {
+      state: lobby.getPublicStateForPlayer(player.id),
+      serverTime: Date.now(),
+    });
+  }
 }
 
-function startTurnTimer(roomId) {
-  const room = rooms.get(roomId);
-  if (!room) return;
-
-  clearInterval(room.timerInterval);
-  room.state.turnTimer = TURN_TIMER_SECONDS;
-
-  room.timerInterval = setInterval(() => {
-    const r = rooms.get(roomId);
-    if (!r || r.state.status !== 'playing') {
-      clearInterval(r && r.timerInterval);
-      return;
-    }
-
-    r.state.turnTimer -= 1;
-
-    if (r.state.turnTimer <= 0) {
-      clearInterval(r.timerInterval);
-      r.timerInterval = null;
-      handleTimerExpiry(r.state);
-      broadcastState(roomId);
-      if (r.state.status === 'playing') {
-        startTurnTimer(roomId);
-      }
-    } else {
-      io.to(roomId).emit('TIMER_TICK', { turnTimer: r.state.turnTimer });
-    }
-  }, 1000);
+function emitLobbyList() {
+  const open = [];
+  for (const match of lobby.matches.values()) {
+    if (match.status !== MATCH_STATUS.WAITING) continue;
+    open.push({
+      id: match.id,
+      code: match.code,
+      mode: match.mode,
+      players: Array.from(match.players.values()).map((p) => ({ id: p.id, displayName: p.displayName, ready: p.ready })),
+      maxPlayers: match.settings.maxPlayers,
+      ranked: match.settings.ranked,
+    });
+  }
+  io.emit('LOBBY_LIST_UPDATE', { matches: open });
 }
 
 io.on('connection', (socket) => {
-  console.log(`Client connected: ${socket.id}`);
+  socket.on('CLIENT_HELLO', ({ playerId, displayName }) => {
+    const session = lobby.createOrResumeSession({ playerId, displayName, socketId: socket.id });
+    socket.data.playerId = session.playerId;
+    socket.emit('SESSION_READY', session);
 
-  socket.on('JOIN_GAME', ({ playerName }) => {
-    let joinedRoomId = null;
-
-    // Find a room waiting for a second player
-    for (const [roomId, room] of rooms.entries()) {
-      if (room.players.length === 1 && room.state.status === 'waiting') {
-        joinedRoomId = roomId;
-        break;
-      }
+    const reconnection = lobby.reconnectPlayer({ playerId: session.playerId, socketId: socket.id });
+    if (reconnection) {
+      emitState(reconnection.match);
     }
 
-    if (!joinedRoomId) {
-      // Create new room
-      joinedRoomId = `room_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      const state = createGame();
-      rooms.set(joinedRoomId, {
-        state,
-        players: [],
-        timerInterval: null,
+    emitLobbyList();
+  });
+
+  socket.on('CREATE_MATCH', ({ displayName, settings, mode, botDifficulty }) => {
+    const playerId = socket.data.playerId;
+    if (!playerId) {
+      socket.emit('REQUEST_ERROR', { error: 'Session required' });
+      return;
+    }
+
+    try {
+      const match = lobby.createMatch({
+        hostPlayerId: playerId,
+        displayName,
+        settings,
+        mode,
+        botDifficulty,
       });
-    }
-
-    const room = rooms.get(joinedRoomId);
-    const playerIndex = room.players.length;
-    room.players.push(socket.id);
-    room.state.players[playerIndex].id = socket.id;
-    room.state.players[playerIndex].name = (playerName && playerName.trim()) || `Player ${playerIndex + 1}`;
-
-    socket.join(joinedRoomId);
-    socket.data.roomId = joinedRoomId;
-    socket.data.playerIndex = playerIndex;
-
-    socket.emit('JOINED_GAME', {
-      roomId: joinedRoomId,
-      playerIndex,
-      playerId: socket.id,
-    });
-
-    if (room.players.length === 2) {
-      room.state.status = 'playing';
-      broadcastState(joinedRoomId);
-      startTurnTimer(joinedRoomId);
-    } else {
-      broadcastState(joinedRoomId);
+      lobby.joinMatch({ code: match.code, playerId, displayName, socketId: socket.id });
+      emitState(match);
+      emitLobbyList();
+    } catch (error) {
+      socket.emit('REQUEST_ERROR', { error: error.message });
     }
   });
 
-  socket.on('SUBMIT_MOVE', ({ selectedCoinIds }) => {
-    const roomId = socket.data.roomId;
-    if (!roomId) return;
-    const room = rooms.get(roomId);
-    if (!room) return;
-
-    const result = handleMove(room.state, socket.id, selectedCoinIds || []);
-
-    if (result.success) {
-      clearInterval(room.timerInterval);
-      room.timerInterval = null;
-      broadcastState(roomId);
-      if (room.state.status === 'playing') {
-        startTurnTimer(roomId);
-      }
-    } else {
-      socket.emit('MOVE_ERROR', { error: result.error });
+  socket.on('QUEUE_MATCH', ({ displayName, settings, mode }) => {
+    const playerId = socket.data.playerId;
+    if (!playerId) {
+      socket.emit('REQUEST_ERROR', { error: 'Session required' });
+      return;
     }
+
+    const result = lobby.queuePlayer({ playerId, displayName, settings, mode });
+    if (result.matched) {
+      emitState(result.match);
+      emitLobbyList();
+    } else {
+      socket.emit('QUEUE_WAITING', { queued: true });
+    }
+  });
+
+  socket.on('JOIN_MATCH', ({ code, displayName }) => {
+    const playerId = socket.data.playerId;
+    if (!playerId) {
+      socket.emit('REQUEST_ERROR', { error: 'Session required' });
+      return;
+    }
+
+    try {
+      const { match } = lobby.joinMatch({ code, playerId, displayName, socketId: socket.id });
+      emitState(match);
+      emitLobbyList();
+    } catch (error) {
+      socket.emit('REQUEST_ERROR', { error: error.message });
+    }
+  });
+
+  socket.on('TOGGLE_READY', ({ ready }) => {
+    const playerId = socket.data.playerId;
+    if (!playerId) return;
+    const match = lobby.setReady({ playerId, ready });
+    if (!match) return;
+    emitState(match);
+    emitLobbyList();
+  });
+
+  socket.on('SUBMIT_MOVE', (move) => {
+    const playerId = socket.data.playerId;
+    if (!playerId) return;
+    const result = lobby.processMove({ playerId, move });
+    if (!result.ok) {
+      socket.emit('MOVE_REJECTED', { reason: result.reason, preview: result.preview || null });
+      return;
+    }
+
+    emitState(result.match);
+
+    void lobby.maybeRunBotTurn(result.match).then((botResult) => {
+      if (botResult && botResult.match) {
+        emitState(botResult.match);
+      }
+    });
+  });
+
+  socket.on('REQUEST_REMATCH', () => {
+    const playerId = socket.data.playerId;
+    if (!playerId) return;
+    const rematch = lobby.requestRematch(playerId);
+    if (!rematch) return;
+    emitState(rematch);
+    emitLobbyList();
   });
 
   socket.on('disconnect', () => {
-    console.log(`Client disconnected: ${socket.id}`);
-    const roomId = socket.data.roomId;
-    if (!roomId) return;
-    const room = rooms.get(roomId);
-    if (!room) return;
-
-    clearInterval(room.timerInterval);
-    io.to(roomId).emit('PLAYER_DISCONNECTED', { playerId: socket.id });
-    rooms.delete(roomId);
+    const result = lobby.disconnect(socket.id);
+    if (result?.match) {
+      emitState(result.match);
+      emitLobbyList();
+    }
   });
 });
 
+setInterval(() => {
+  const activated = lobby.activateStartedMatches();
+  activated.forEach((match) => emitState(match));
+
+  const timedOut = lobby.applyTimeouts();
+  timedOut.forEach((match) => emitState(match));
+
+  for (const match of lobby.matches.values()) {
+    if (match.status === MATCH_STATUS.ACTIVE) {
+      void lobby.maybeRunBotTurn(match).then((botResult) => {
+        if (botResult?.match) emitState(botResult.match);
+      });
+    }
+  }
+}, 250);
+
 server.listen(PORT, () => {
-  console.log(`Sphere Break server running on port ${PORT}`);
+  // eslint-disable-next-line no-console
+  console.log(`Celestial Break server listening on ${PORT}`);
 });
 
 module.exports = { app, server, io };

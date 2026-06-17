@@ -1,149 +1,291 @@
-# Sphere Break
+# Celestial Break
 
-Sphere Break is a two-player turn-based browser game built with React, Node.js, Express, and Socket.IO. Players join the same match, select coins from the board to build a sum, and try to match the digits of the current core value from right to left.
+Celestial Break is an original multiplayer competitive number puzzle game inspired by the broad concept of token selection and multiple matching. This project does not include Final Fantasy assets, names, characters, music, iconography, screenshots, or proprietary terminology.
 
-The server handles matchmaking, game state, scoring, turn timers, and board generation. The client renders the board, player status, timer, and move feedback in real time.
+## Game Overview
 
-## How The Game Works
+Players compete by selecting numbered tokens to form valid Break moves:
 
-- Two players are matched into the same room.
-- Each match starts with a 16-coin board, a random three-digit core value, and a quota.
-- On your turn, you select one or more coins and submit them in order.
-- Normal coins add their face value to the running sum.
-- Multiplier coins add their face value and multiply the score gained from a successful move.
-- Echo coins repeat the value of the previous non-echo coin.
-- A move succeeds when the submitted sum matches at least the required number of core digits from right to left.
-- A full core break happens when every digit matches. This awards an additional bonus.
-- Successful moves increase the active player's chain and let that player continue their turn.
-- Failed moves or timer expiry pass the turn to the other player and reset the chain.
-- The game ends after the configured round limit, and the player with the highest score wins.
+- The board has a central target number from 1 to 9.
+- Each move must include at least one inner token.
+- Selected token values must sum to a positive multiple of the target number.
+- Valid Break moves grant score, combo, streak, and quota progress.
+- The server authoritatively validates all moves, timing, scoring, and outcomes.
+
+## Core Rules
+
+- Target number range: 1 to 9.
+- Token values: 1 to 9.
+- Inner tokens: required zone; at least one must be selected.
+- Outer tokens: optional selection.
+- Invalid move: rejected by server; does not advance trusted scoring.
+- Match win condition:
+  - first to quota, or
+  - highest score when turn limit ends.
+
+## Match Settings
+
+Supported settings:
+
+- `turnLimit`
+- `secondsPerTurn`
+- `quotaToWin`
+- `targetNumberRange`
+- `boardSize`
+- `maxPlayers`
+- `ranked`
+- `tokenReplacementMode`
+- `comboRules`
+
+## Multiplayer Lifecycle
+
+Match states:
+
+- `waiting`
+- `starting`
+- `active`
+- `completed`
+- `abandoned`
+
+Features:
+
+- Create match
+- Join match by code
+- Quick queue placeholder
+- Ready state and countdown
+- Real-time board sync via Socket.IO
+- Server turn timer authority
+- Reconnect support by persisted player id
+- Rematch request
+- Bot practice mode (easy, normal, hard)
+
+## Anti-Cheat Model
+
+The server is authoritative for:
+
+- RNG and board generation
+- target number updates
+- move validation
+- score and combo calculations
+- turn timing
+- winner determination
+- ranked leaderboard writes
+
+Implemented protections:
+
+- per-player move rate limiting
+- duplicate nonce rejection
+- stale board version rejection
+- inactive-player rejection
+- turn-window validation
+- unknown token id rejection
+- suspicious activity flags for:
+  - request flooding
+  - duplicate nonce spam
+  - disconnect abuse
+  - stale board misuse
+- replay event log per match for audit
+
+## Leaderboards
+
+Tracked stats include:
+
+- rating
+- wins
+- losses
+- win rate
+- best score
+- best combo
+- best streak
+- fastest valid Break
+- weekly ranked scores
+- all-time ranked scores
+
+Rules:
+
+- only server-completed ranked matches update ranked leaderboard stats
+- casual matches do not affect ranked leaderboard standings
 
 ## Tech Stack
 
-- Client: React 18, react-scripts, Socket.IO client
-- Server: Node.js, Express, Socket.IO
-- Testing: Jest
-- Containerization: Docker, Docker Compose
+- Frontend: React 18 (Create React App), JavaScript
+- Backend: Node.js, Express, Socket.IO
+- Persistence: Prisma ORM with SQLite default (`DATABASE_URL`)
+- Tests: Jest (server + client)
+- Container: Docker and Docker Compose
 
 ## Project Structure
 
 ```text
 .
-|-- client/   # React frontend
-|-- server/   # Express + Socket.IO game server and game engine
+|-- client/
+|   |-- src/screens/
+|   |-- src/components/ui/
+|   `-- src/state/
+|-- server/
+|   |-- src/domain/
+|   |-- src/services/
+|   |-- src/contracts/
+|   |-- src/db/
+|   `-- prisma/
+|-- docs/assets.md
 |-- Dockerfile
 `-- docker-compose.yml
 ```
 
-## Prerequisites
+## Installation
 
-- Node.js 20 or later recommended
-- npm
-- Docker Desktop (optional, for containerized runs)
-
-## Install
-
-Install dependencies for both parts of the app:
+### 1) Install dependencies
 
 ```bash
-cd client
+cd /home/runner/work/spherebreak/spherebreak/client
+npm install
+
+cd /home/runner/work/spherebreak/spherebreak/server
 npm install
 ```
 
-```bash
-cd server
-npm install
+### 2) Configure environment
+
+Create `/home/runner/work/spherebreak/spherebreak/server/.env`:
+
+```env
+DATABASE_URL="file:./dev.db"
+PORT=3000
+NODE_ENV=development
 ```
 
-## Run Locally
-
-There are two practical ways to run the project locally.
-
-### Option 1: Run The Production-Style App Locally
-
-Build the React client, then start the Node server that serves the static frontend and websocket API on port 3000.
+### 3) Prepare database
 
 ```bash
-cd client
-npm run build
+cd /home/runner/work/spherebreak/spherebreak/server
+npm run db:generate
+npm run db:push
+npm run db:seed
 ```
 
-```bash
-cd server
-npm start
-```
+## Run Development
 
-Open http://localhost:3000 in your browser.
-
-### Option 2: Run Client And Server Separately For Development
-
-The server uses port 3000 by default. Since the React dev server also defaults to port 3000, start the client on a different port and point it at the backend explicitly.
-
-Start the server:
+Start backend:
 
 ```bash
-cd server
+cd /home/runner/work/spherebreak/spherebreak/server
 npm run dev
 ```
 
-Start the client in a second terminal:
+Start frontend in another terminal:
 
 ```bash
-cd client
-$env:PORT=3001
-$env:REACT_APP_SERVER_URL='http://localhost:3000'
-npm start
+cd /home/runner/work/spherebreak/spherebreak/client
+PORT=3001 REACT_APP_SERVER_URL=http://localhost:3000 npm start
 ```
 
-Open http://localhost:3001 in your browser.
+Open `http://localhost:3001`.
 
-## Run With Docker
+## Run Tests
 
-Build and start the full app:
-
-```bash
-docker compose up --build
-```
-
-The app will be available at http://localhost:3000.
-
-On the first run, Docker builds the React client and bundles it into the server image automatically. After that, you can start the existing image again with:
+Server tests:
 
 ```bash
-docker compose up
-```
-
-To stop it:
-
-```bash
-docker compose down
-```
-
-## Tests
-
-Run the server-side test suite:
-
-```bash
-cd server
+cd /home/runner/work/spherebreak/spherebreak/server
 npm test
 ```
 
-## Available Scripts
+Client tests:
 
-### Client
+```bash
+cd /home/runner/work/spherebreak/spherebreak/client
+CI=true npm test -- --watch=false
+```
 
-- `npm start` starts the React development server.
-- `npm run build` builds the production frontend.
-- `npm test` runs the client test runner.
+Client build:
 
-### Server
+```bash
+cd /home/runner/work/spherebreak/spherebreak/client
+npm run build
+```
 
-- `npm start` starts the production server.
-- `npm run dev` starts the server with nodemon.
-- `npm test` runs the Jest test suite.
+## Docker
 
-## Notes
+```bash
+cd /home/runner/work/spherebreak/spherebreak
+docker compose up --build
+```
 
-- The server serves the built client from `client/build` in production mode.
-- The client connects to `REACT_APP_SERVER_URL` when provided; otherwise it uses the current page origin.
-- A match needs two connected players before gameplay begins.
+## Architecture Diagram
+
+```mermaid
+flowchart LR
+    Client[Game Client] --> Socket[Realtime Gateway Socket.IO]
+    Socket --> Match[Match Engine]
+    Match --> Rules[Rules Engine]
+    Match --> Replay[Replay Service]
+    Match --> Store[(Prisma Database)]
+    Store --> Leaderboard[Leaderboard Service]
+    Client --> Api[HTTP API]
+    Api --> Store
+```
+
+## Multiplayer Sequence
+
+```mermaid
+sequenceDiagram
+    participant C1 as Player A Client
+    participant C2 as Player B Client
+    participant S as Realtime Server
+    participant M as Match Engine
+
+    C1->>S: CREATE_MATCH
+    C2->>S: JOIN_MATCH(code)
+    C1->>S: TOGGLE_READY(true)
+    C2->>S: TOGGLE_READY(true)
+    S->>M: start countdown
+    M-->>C1: GAME_STATE_UPDATE(starting)
+    M-->>C2: GAME_STATE_UPDATE(starting)
+    S->>M: activate match
+    C1->>S: SUBMIT_MOVE(selectedTokenIds, nonce, boardVersion)
+    S->>M: validate + apply move
+    M-->>C1: GAME_STATE_UPDATE(active)
+    M-->>C2: GAME_STATE_UPDATE(active)
+```
+
+## Move Validation Flow
+
+```mermaid
+flowchart TD
+    A[Client sends move] --> B[Validate payload shape]
+    B --> C[Validate active match and turn]
+    C --> D[Validate nonce and rate limit]
+    D --> E[Validate board version]
+    E --> F[Validate token ids and required inner token]
+    F --> G{sum is multiple of target?}
+    G -- no --> H[Reject move and flag if suspicious]
+    G -- yes --> I[Apply score combo streak quota]
+    I --> J[Mutate board and advance turn]
+    J --> K[Broadcast authoritative state]
+```
+
+## Leaderboard Update Flow
+
+```mermaid
+flowchart TD
+    A[Match ends] --> B{server completed and ranked?}
+    B -- no --> C[Skip ranked leaderboard update]
+    B -- yes --> D[Compute winner and participant stats]
+    D --> E[Upsert leaderboard stats]
+    E --> F[Persist match record]
+    F --> G[Persist replay events]
+```
+
+## Asset Licensing
+
+See `/home/runner/work/spherebreak/spherebreak/docs/assets.md`.
+
+All included visuals are original SVG assets created for this repository.
+
+## Deployment Notes
+
+- Backend serves built frontend from `client/build`.
+- Set `DATABASE_URL` for production database target.
+- Keep Socket.IO behind HTTPS-capable reverse proxy.
+- Do not expose debug-only internals publicly.

@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String           @id
+  displayName String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  leaderboard LeaderboardStat?
+  matches     MatchParticipant[]
+}
+
+model MatchRecord {
+  id           String             @id
+  code         String
+  ranked       Boolean            @default(false)
+  mode         String
+  winnerUserId String?
+  completedAt  DateTime
+  payload      String
+  participants MatchParticipant[]
+  replayEvents ReplayEvent[]
+}
+
+model MatchParticipant {
+  id          String      @id @default(cuid())
+  matchId     String
+  userId      String
+  displayName String
+  score       Int
+  combo       Int
+  streak      Int
+  position    Int
+  createdAt   DateTime    @default(now())
+  match       MatchRecord @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([matchId])
+}
+
+model ReplayEvent {
+  id        String      @id @default(cuid())
+  matchId   String
+  type      String
+  payload   String
+  createdAt DateTime
+  match     MatchRecord @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([matchId, createdAt])
+}
+
+model LeaderboardStat {
+  userId             String  @id
+  rating             Int     @default(1000)
+  wins               Int     @default(0)
+  losses             Int     @default(0)
+  winRate            Float   @default(0)
+  bestScore          Int     @default(0)
+  bestCombo          Int     @default(0)
+  bestStreak         Int     @default(0)
+  fastestValidBreakMs Int?
+  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
