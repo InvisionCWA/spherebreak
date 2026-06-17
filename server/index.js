@@ -74,9 +74,9 @@ app.get('*', (req, res) => {
 // Generic error handler — must have 4 parameters so Express recognises it as an
 // error-handling middleware and never expose internal stack traces to clients.
 // eslint-disable-next-line no-unused-vars
-app.use((err, _req, res, _next) => {
+app.use((error, _req, res, _next) => {
   // eslint-disable-next-line no-console
-  console.error(err);
+  console.error(error);
   res.status(500).json({ error: 'Internal server error' });
 });
 

@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
 
+# Restrict the default GITHUB_TOKEN to read-only repository access.
+# Individual jobs that need broader access can declare their own permissions.
+permissions:
+  contents: read
+
 jobs:
   server-test:
     name: Server tests
