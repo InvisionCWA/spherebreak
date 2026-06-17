@@ -83,14 +83,16 @@ app.use((error, _req, res, _next) => {
 });
 
 async function emitState(match) {
-  const rankMap = await lobby.getRankMapForPlayers(Array.from(match.players.values()));
-  for (const player of match.players.values()) {
-    if (!player.socketId) continue;
+  const players = Array.from(match.players.values()).filter((player) => player.socketId);
+  const rankMap = await lobby.getRankMapForPlayers(players);
+  const states = await Promise.all(players.map((player) => lobby.getPublicStateForPlayer(player.id, rankMap)));
+
+  players.forEach((player, index) => {
     io.to(player.socketId).emit('GAME_STATE_UPDATE', {
-      state: await lobby.getPublicStateForPlayer(player.id, rankMap),
+      state: states[index],
       serverTime: Date.now(),
     });
-  }
+  });
 }
 
 async function emitLobbyList() {
@@ -228,10 +230,10 @@ io.on('connection', (socket) => {
 
 setInterval(() => {
   const activated = lobby.activateStartedMatches();
-  activated.forEach((match) => { void emitState(match); });
+  activated.forEach((match) => void emitState(match));
 
   const timedOut = lobby.applyTimeouts();
-  timedOut.forEach((match) => { void emitState(match); });
+  timedOut.forEach((match) => void emitState(match));
 
   for (const match of lobby.matches.values()) {
     if (match.status === MATCH_STATUS.ACTIVE) {

@@ -1,7 +1,8 @@
 'use strict';
 
 const { getPrismaClient } = require('../db/client');
-const { getRanksForUsers, buildRankDto } = require('./rankService');
+const { buildRankDto } = require('../domain/rankDomain');
+const { getRanksForUsers } = require('./rankService');
 
 function buildDefaultStats() {
   return {

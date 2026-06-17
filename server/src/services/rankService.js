@@ -33,5 +33,4 @@ async function getRanksForUsers(users = []) {
 
 module.exports = {
   getRanksForUsers,
-  buildRankDto,
 };

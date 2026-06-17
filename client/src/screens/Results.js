@@ -29,7 +29,7 @@ export default function Results({ state, onRematch, onExit }) {
                 displayName={`${index + 1}. ${player.displayName}${player.id === state.winnerId ? ' - Winner' : ''}`}
                 playerRank={player.playerRank}
                 isBot={player.isBot}
-                meta={`${player.score} pts`}
+                meta={player.id === state.winnerId ? 'Winner' : 'Final standing'}
               />
               <span>{player.score} pts</span>
             </li>
