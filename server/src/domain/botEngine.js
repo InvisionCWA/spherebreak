@@ -9,7 +9,7 @@ function pickBotMove(board, difficulty = 'normal', random = Math.random) {
   const strongestFirst = [...validMoves].sort((a, b) => b.sum - a.sum);
 
   if (difficulty === 'easy') {
-    return strongestFirst[Math.floor(random() * strongestFirst.length)];
+    return validMoves[Math.floor(random() * validMoves.length)];
   }
 
   if (difficulty === 'normal') {

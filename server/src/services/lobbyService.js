@@ -233,13 +233,14 @@ class LobbyService {
     if (!current || !current.isBot) return null;
 
     const turnKey = `${match.id}:${match.turnCount}:${current.id}:${match.board.version}`;
+    const botDifficulty = current.botDifficulty || match.botDifficulty || 'normal';
     const pending = this.pendingBotTurns.get(match.id);
     if (!pending || pending.turnKey !== turnKey) {
       this.pendingBotTurns.set(match.id, {
         turnKey,
         executeAt: Date.now() + getBotThinkDelayMs({
           secondsPerTurn: match.settings.secondsPerTurn,
-          difficulty: current.botDifficulty || match.botDifficulty || 'normal',
+          difficulty: botDifficulty,
           random: this.random,
         }),
       });
@@ -252,7 +253,7 @@ class LobbyService {
 
     this.pendingBotTurns.delete(match.id);
 
-    const botMove = pickBotMove(match.board, current.botDifficulty || match.botDifficulty || 'normal', this.random);
+    const botMove = pickBotMove(match.board, botDifficulty, this.random);
     if (!botMove) {
       applyTurnTimeout(match, current.id);
       return { timeout: true, match };

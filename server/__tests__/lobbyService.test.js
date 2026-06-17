@@ -114,6 +114,7 @@ describe('lobby service', () => {
     const bots = Array.from(match.players.values()).filter((player) => player.isBot);
     expect(bots).toHaveLength(1);
     expect(bots[0].ready).toBe(true);
+    expect(bots[0].botDifficulty).toBe('normal');
     expect(bots[0].displayName).toMatch(/^[A-Za-z]+[A-Za-z0-9]*$/);
   });
 
