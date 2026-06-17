@@ -1,7 +1,7 @@
 ---
 name: Docker Portainer Deploy Agent
 description: "Use when user asks to test with Docker locally, build latest image, deploy on Docker Desktop localhost, prepare production Portainer stack files, generate/update docker-compose.yml and .env templates, or define update workflow for Portainer."
-tools: [read, search, edit, execute, todo]
+tools: [read, search, edit, execute]
 model: GPT-5 (copilot)
 argument-hint: "Describe what you changed and whether to run local Docker test, production hardening, and Portainer file generation"
 user-invocable: true

@@ -65,8 +65,6 @@ jobs:
   client-build:
     name: Client build
     runs-on: ubuntu-latest
-    outputs:
-      build-key: ${{ steps.cache-key.outputs.key }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

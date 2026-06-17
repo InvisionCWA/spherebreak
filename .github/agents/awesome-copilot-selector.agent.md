@@ -1,7 +1,7 @@
 ---
 name: Awesome Copilot Selector Agent
 description: "Use when you need full-repo analysis and a curated selection of applicable GitHub awesome-copilot agents, skills, and .instructions.md files for this codebase."
-tools: [read, search, web, edit, execute, todo]
+tools: [read, search, web, edit, execute]
 model: GPT-5 (copilot)
 argument-hint: "Analyze this repo and select applicable awesome-copilot agents, skills, and instructions; optionally install them"
 user-invocable: true
