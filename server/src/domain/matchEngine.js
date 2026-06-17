@@ -257,7 +257,7 @@ function processMove(match, playerId, move) {
   let comboContinued = false;
 
   if (comboRuleType === 'achieved-multiple') {
-    if (currentPlayer.combo === 0 || currentPlayer.lastBreakAchievedMultiple === achievedMultiple) {
+    if (currentPlayer.combo === 0 || (currentPlayer.lastBreakAchievedMultiple !== null && currentPlayer.lastBreakAchievedMultiple === achievedMultiple)) {
       currentPlayer.combo += comboStep;
       comboIncreased = true;
       comboContinued = currentPlayer.lastBreakAchievedMultiple !== null;
@@ -270,7 +270,7 @@ function processMove(match, playerId, move) {
   } else {
     // Default: 'token-count' rule — same number of tokens used as previous
     // valid Break continues the chain.
-    if (currentPlayer.combo === 0 || currentPlayer.lastBreakTokenCount === tokenCount) {
+    if (currentPlayer.combo === 0 || (currentPlayer.lastBreakTokenCount !== null && currentPlayer.lastBreakTokenCount === tokenCount)) {
       currentPlayer.combo += comboStep;
       comboIncreased = true;
       comboContinued = currentPlayer.lastBreakTokenCount !== null;

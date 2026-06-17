@@ -190,7 +190,7 @@ export default function GameScreen({
           <div className="result-box" aria-label="Last move result">
             <p>Last: {state.players.find((p) => p.id === lastMove.playerId)?.displayName || 'player'}</p>
             <p>sum {lastMove.sum}{lastMove.achievedMultiple ? ` (×${lastMove.achievedMultiple})` : ''}, +{lastMove.scoreGain} pts</p>
-            {lastMove.tokenCount != null && <p>Tokens used: {lastMove.tokenCount}</p>}
+            {lastMove.tokenCount !== null && lastMove.tokenCount !== undefined && <p>Tokens used: {lastMove.tokenCount}</p>}
             {lastMove.combo > 0 && <p>Combo {lastMove.combo} / Streak {lastMove.streak}</p>}
             <ComboExplanation lastMove={lastMove} comboRuleType={comboRuleType} />
           </div>

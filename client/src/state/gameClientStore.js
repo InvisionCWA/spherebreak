@@ -68,8 +68,8 @@ export function buildMovePreview(board, selectedTokenIds) {
   let nextMultiples = [];
   if (target > 0) {
     const baseMultiplier = isValid
-      ? Math.round(sum / target)
-      : Math.round(nearestMultiple / target);
+      ? Math.floor(sum / target)
+      : Math.floor(nearestMultiple / target);
     // Show 4 multiples starting from the current aim (include current when valid)
     // or from the nearest target when not valid.
     const startOffset = isValid ? 1 : 0;
